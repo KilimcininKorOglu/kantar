@@ -1,0 +1,48 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build artifacts
+dist/
+coverage/
+*.out
+
+# Go
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Web UI build (embedded at build time)
+web/node_modules/
+web/dist/
+
+# Database
+*.db
+*.db-journal
+
+# Config with secrets (use kantar.toml.example instead)
+kantar.toml
+policies/
+
+# Logs
+*.log
+
+# Docker
+docker-compose.override.yml
+
+# Temporary
+tmp/
+.tmp/
