@@ -1,0 +1,17 @@
+services:
+  kantar:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - kantar-data:/var/lib/kantar
+      - ./kantar.toml:/etc/kantar/kantar.toml:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  kantar-data:

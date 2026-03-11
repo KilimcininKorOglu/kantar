@@ -1,0 +1,59 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/kilimcininkorglu/kantar
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  host: kantar.local
+  annotations: {}
+  tls: []
+
+persistence:
+  enabled: true
+  size: 50Gi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+
+resources:
+  limits:
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+database:
+  type: sqlite
+  postgres:
+    enabled: false
+    host: ""
+    port: 5432
+    name: kantar
+    user: kantar
+    existingSecret: ""
+
+config:
+  server:
+    port: 8080
+  storage:
+    type: filesystem
+    path: /var/lib/kantar/data
+  auth:
+    type: local
+    sessionTtl: 24h
+    tokenTtl: 90d
+  cache:
+    enabled: true
+    type: memory
+    maxSize: 2GB
+    ttl: 1h
+  logging:
+    level: info
+    format: json
