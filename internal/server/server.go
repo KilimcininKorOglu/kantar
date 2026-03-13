@@ -4,6 +4,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"time"
@@ -115,4 +116,24 @@ func (s *Server) setupRoutes() {
 func (s *Server) MountPluginRoutes(prefix string, handler http.Handler) {
 	s.router.Mount(prefix, handler)
 	s.logger.Info("plugin routes mounted", "prefix", prefix)
+}
+
+// MountWebUI serves the embedded SPA from the given filesystem.
+// Unknown paths fall back to index.html for client-side routing.
+func (s *Server) MountWebUI(webFS fs.FS) {
+	fileServer := http.FileServer(http.FS(webFS))
+
+	s.router.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		// Try to serve the file directly
+		f, err := webFS.Open(r.URL.Path[1:]) // strip leading /
+		if err == nil {
+			f.Close()
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// Fallback to index.html for SPA routing
+		r.URL.Path = "/"
+		fileServer.ServeHTTP(w, r)
+	})
 }
