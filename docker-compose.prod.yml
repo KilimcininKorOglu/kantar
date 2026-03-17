@@ -2,7 +2,7 @@ services:
   kantar:
     build: .
     ports:
-      - "8080:8080"
+      - "5445:8080"
     volumes:
       - kantar-data:/var/lib/kantar
       - ./kantar.toml:/etc/kantar/kantar.toml:ro
