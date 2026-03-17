@@ -2,16 +2,32 @@ services:
   kantar:
     build: .
     ports:
-      - "7655:8080"
+      - "5445:8080"
     volumes:
       - kantar-data:/var/lib/kantar
       - ./kantar.toml:/etc/kantar/kantar.toml:ro
+    environment:
+      - KANTAR_DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=kantar
+      - POSTGRES_USER=kantar
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
-      interval: 30s
+      test: ["CMD-SHELL", "pg_isready -U kantar"]
+      interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
+    restart: unless-stopped
 
 volumes:
   kantar-data:
+  pg-data:
