@@ -1,5 +1,6 @@
 bin/
 coverage/
+docker-data/
 *.db
 *.db-journal
 *.log
