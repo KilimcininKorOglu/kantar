@@ -2,15 +2,21 @@ services:
   kantar:
     build: .
     ports:
-      - "5445:8080"
+      - "8080:8080"
     volumes:
       - kantar-data:/var/lib/kantar
       - ./kantar.toml:/etc/kantar/kantar.toml:ro
     environment:
-      - KANTAR_DB_PASSWORD=${DB_PASSWORD}
+      - KANTAR_DB_PASSWORD=${DB_PASSWORD:-kantar}
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     restart: unless-stopped
 
   postgres:
@@ -20,7 +26,7 @@ services:
     environment:
       - POSTGRES_DB=kantar
       - POSTGRES_USER=kantar
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-kantar}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kantar"]
       interval: 10s
