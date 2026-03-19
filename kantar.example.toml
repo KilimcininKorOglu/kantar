@@ -1,0 +1,54 @@
+# Kantar Configuration — Docker Compose Environment
+
+[server]
+host = "0.0.0.0"
+port = 8080
+workers = 0
+
+[storage]
+type = "filesystem"
+path = "/var/lib/kantar/data"
+
+[database]
+type = "postgres"
+
+[database.postgres]
+host = "postgres"
+port = 5432
+name = "kantar"
+user = "kantar"
+password = "${KANTAR_DB_PASSWORD}"
+ssl_mode = "disable"
+
+[auth]
+type = "local"
+session_ttl = "24h"
+token_ttl = "90d"
+
+[cache]
+enabled = true
+type = "memory"
+max_size = "2GB"
+ttl = "1h"
+
+[logging]
+level = "info"
+format = "json"
+audit_enabled = true
+audit_path = "/var/lib/kantar/logs/audit.log"
+audit_retention = "365d"
+
+[registry.npm]
+mode = "allowlist"
+upstream = "https://registry.npmjs.org"
+enabled = true
+
+[registry.docker]
+mode = "allowlist"
+upstream = "https://registry-1.docker.io"
+enabled = true
+
+[registry.pypi]
+mode = "allowlist"
+upstream = "https://pypi.org"
+enabled = true
