@@ -16,7 +16,7 @@ func newTestServer() *Server {
 		Port: 0,
 	}
 	logger := slog.Default()
-	return New(cfg, logger)
+	return New(cfg, logger, Dependencies{})
 }
 
 func TestHealthz(t *testing.T) {

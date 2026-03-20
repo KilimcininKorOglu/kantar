@@ -12,8 +12,20 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
+	"github.com/KilimcininKorOglu/kantar/internal/audit"
+	"github.com/KilimcininKorOglu/kantar/internal/auth"
 	"github.com/KilimcininKorOglu/kantar/internal/config"
+	"github.com/KilimcininKorOglu/kantar/internal/database/sqlc"
+	"github.com/KilimcininKorOglu/kantar/internal/manager"
 )
+
+// Dependencies holds all subsystem dependencies the server needs for API handlers.
+type Dependencies struct {
+	Queries     *sqlc.Queries
+	JWTManager  *auth.JWTManager
+	Manager     *manager.Manager
+	AuditLogger *audit.Logger
+}
 
 // Server is the main HTTP server for Kantar.
 type Server struct {
@@ -21,16 +33,18 @@ type Server struct {
 	config config.ServerConfig
 	srv    *http.Server
 	logger *slog.Logger
+	deps   Dependencies
 }
 
 // New creates a new Server instance.
-func New(cfg config.ServerConfig, logger *slog.Logger) *Server {
+func New(cfg config.ServerConfig, logger *slog.Logger, deps Dependencies) *Server {
 	r := chi.NewRouter()
 
 	s := &Server{
 		router: r,
 		config: cfg,
 		logger: logger,
+		deps:   deps,
 	}
 
 	s.setupMiddleware()
@@ -107,8 +121,50 @@ func (s *Server) setupRoutes() {
 	s.router.Get("/healthz", s.handleHealthz)
 
 	// Management API
-	s.router.Route("/api/v1", func(r chi.Router) {
+	s.router.Route("/api/v1", s.setupAPIRoutes)
+}
+
+func (s *Server) setupAPIRoutes(r chi.Router) {
+	// Public auth endpoints — no authentication required
+	r.Post("/auth/login", s.handleLogin)
+	r.Post("/auth/register", s.handleRegister)
+
+	// Authenticated endpoints
+	r.Group(func(r chi.Router) {
+		if s.deps.JWTManager != nil {
+			r.Use(auth.Middleware(s.deps.JWTManager))
+		}
+
 		r.Get("/system/status", s.handleSystemStatus)
+
+		// User management — super_admin only
+		r.Route("/users", func(r chi.Router) {
+			r.Use(auth.RequireRole(auth.RoleSuperAdmin))
+			r.Get("/", s.handleListUsers)
+			r.Get("/{id}", s.handleGetUser)
+			r.Put("/{id}", s.handleUpdateUser)
+			r.Delete("/{id}", s.handleDeleteUser)
+		})
+
+		// Package management
+		r.Route("/packages", func(r chi.Router) {
+			r.Use(auth.RequireRole(auth.RoleConsumer))
+			r.Get("/", s.handleListPackages)
+			r.Get("/{id}", s.handleGetPackage)
+
+			r.Group(func(r chi.Router) {
+				r.Use(auth.RequireRole(auth.RoleRegistryAdmin))
+				r.Post("/{id}/approve", s.handleApprovePackage)
+				r.Post("/{id}/block", s.handleBlockPackage)
+			})
+		})
+
+		// Audit logs — registry_admin+
+		r.Route("/audit", func(r chi.Router) {
+			r.Use(auth.RequireRole(auth.RoleRegistryAdmin))
+			r.Get("/", s.handleListAuditLogs)
+			r.Get("/verify", s.handleVerifyAuditChain)
+		})
 	})
 }
 
