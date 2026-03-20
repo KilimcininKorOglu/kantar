@@ -1,16 +1,16 @@
 -- name: GetPackageVersion :one
-SELECT * FROM package_versions WHERE package_id = ? AND version = ? LIMIT 1;
+SELECT * FROM package_versions WHERE package_id = $1 AND version = $2 LIMIT 1;
 
 -- name: ListPackageVersions :many
-SELECT * FROM package_versions WHERE package_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?;
+SELECT * FROM package_versions WHERE package_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3;
 
 -- name: CreatePackageVersion :one
 INSERT INTO package_versions (package_id, version, size, checksum_sha256, checksum_sha1, storage_path, metadata_json, synced_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
 -- name: DeletePackageVersion :exec
-DELETE FROM package_versions WHERE id = ?;
+DELETE FROM package_versions WHERE id = $1;
 
 -- name: CountPackageVersions :one
-SELECT COUNT(*) FROM package_versions WHERE package_id = ?;
+SELECT COUNT(*) FROM package_versions WHERE package_id = $1;

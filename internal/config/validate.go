@@ -88,27 +88,23 @@ func validateStorage(cfg *Config, ve *ValidationError) {
 }
 
 func validateDatabase(cfg *Config, ve *ValidationError) {
-	switch cfg.Database.Type {
-	case "sqlite":
-		if cfg.Database.Path == "" {
-			ve.add("database.path is required when database.type is 'sqlite'")
-		}
-	case "postgres":
-		pg := cfg.Database.Postgres
-		if pg.Host == "" {
-			ve.add("database.postgres.host is required when database.type is 'postgres'")
-		}
-		if pg.Port < 1 || pg.Port > 65535 {
-			ve.add("database.postgres.port must be between 1 and 65535, got %d", pg.Port)
-		}
-		if pg.Name == "" {
-			ve.add("database.postgres.name is required when database.type is 'postgres'")
-		}
-		if pg.User == "" {
-			ve.add("database.postgres.user is required when database.type is 'postgres'")
-		}
-	default:
-		ve.add("database.type must be 'sqlite' or 'postgres', got %q", cfg.Database.Type)
+	if cfg.Database.Type != "postgres" {
+		ve.add("database.type must be 'postgres', got %q", cfg.Database.Type)
+		return
+	}
+
+	pg := cfg.Database.Postgres
+	if pg.Host == "" {
+		ve.add("database.postgres.host is required")
+	}
+	if pg.Port < 1 || pg.Port > 65535 {
+		ve.add("database.postgres.port must be between 1 and 65535, got %d", pg.Port)
+	}
+	if pg.Name == "" {
+		ve.add("database.postgres.name is required")
+	}
+	if pg.User == "" {
+		ve.add("database.postgres.user is required")
 	}
 }
 

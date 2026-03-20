@@ -10,129 +10,129 @@ import (
 )
 
 type ApiToken struct {
-	ID          int64        `json:"id"`
-	UserID      int64        `json:"user_id"`
-	Name        string       `json:"name"`
-	TokenHash   string       `json:"token_hash"`
-	TokenPrefix string       `json:"token_prefix"`
-	ExpiresAt   sql.NullTime `json:"expires_at"`
-	LastUsedAt  sql.NullTime `json:"last_used_at"`
-	CreatedAt   time.Time    `json:"created_at"`
+	ID          int64
+	UserID      int64
+	Name        string
+	TokenHash   string
+	TokenPrefix string
+	ExpiresAt   sql.NullTime
+	LastUsedAt  sql.NullTime
+	CreatedAt   time.Time
 }
 
 type AuditLog struct {
-	ID               int64     `json:"id"`
-	Timestamp        time.Time `json:"timestamp"`
-	Event            string    `json:"event"`
-	ActorUsername    string    `json:"actor_username"`
-	ActorIp          string    `json:"actor_ip"`
-	ActorUserAgent   string    `json:"actor_user_agent"`
-	ResourceRegistry string    `json:"resource_registry"`
-	ResourcePackage  string    `json:"resource_package"`
-	ResourceVersion  string    `json:"resource_version"`
-	Result           string    `json:"result"`
-	MetadataJson     string    `json:"metadata_json"`
-	PrevHash         string    `json:"prev_hash"`
-	Hash             string    `json:"hash"`
+	ID               int64
+	Timestamp        time.Time
+	Event            string
+	ActorUsername    string
+	ActorIp          string
+	ActorUserAgent   string
+	ResourceRegistry string
+	ResourcePackage  string
+	ResourceVersion  string
+	Result           string
+	MetadataJson     string
+	PrevHash         string
+	Hash             string
 }
 
 type Package struct {
-	ID            int64     `json:"id"`
-	RegistryType  string    `json:"registry_type"`
-	Name          string    `json:"name"`
-	Description   string    `json:"description"`
-	License       string    `json:"license"`
-	Homepage      string    `json:"homepage"`
-	Repository    string    `json:"repository"`
-	Status        string    `json:"status"`
-	RequestedBy   string    `json:"requested_by"`
-	ApprovedBy    string    `json:"approved_by"`
-	BlockedReason string    `json:"blocked_reason"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID            int64
+	RegistryType  string
+	Name          string
+	Description   string
+	License       string
+	Homepage      string
+	Repository    string
+	Status        string
+	RequestedBy   string
+	ApprovedBy    string
+	BlockedReason string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 type PackageDependency struct {
-	ID              int64  `json:"id"`
-	VersionID       int64  `json:"version_id"`
-	DepName         string `json:"dep_name"`
-	DepVersionRange string `json:"dep_version_range"`
-	DepOptional     int64  `json:"dep_optional"`
-	DepDev          int64  `json:"dep_dev"`
+	ID              int64
+	VersionID       int64
+	DepName         string
+	DepVersionRange string
+	DepOptional     int64
+	DepDev          int64
 }
 
 type PackageVersion struct {
-	ID             int64        `json:"id"`
-	PackageID      int64        `json:"package_id"`
-	Version        string       `json:"version"`
-	Size           int64        `json:"size"`
-	ChecksumSha256 string       `json:"checksum_sha256"`
-	ChecksumSha1   string       `json:"checksum_sha1"`
-	StoragePath    string       `json:"storage_path"`
-	Deprecated     int64        `json:"deprecated"`
-	Yanked         int64        `json:"yanked"`
-	MetadataJson   string       `json:"metadata_json"`
-	SyncedAt       sql.NullTime `json:"synced_at"`
-	CreatedAt      time.Time    `json:"created_at"`
+	ID             int64
+	PackageID      int64
+	Version        string
+	Size           int64
+	ChecksumSha256 string
+	ChecksumSha1   string
+	StoragePath    string
+	Deprecated     int64
+	Yanked         int64
+	MetadataJson   string
+	SyncedAt       sql.NullTime
+	CreatedAt      time.Time
 }
 
 type Policy struct {
-	ID         int64     `json:"id"`
-	Name       string    `json:"name"`
-	PolicyType string    `json:"policy_type"`
-	ConfigToml string    `json:"config_toml"`
-	Enabled    int64     `json:"enabled"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID         int64
+	Name       string
+	PolicyType string
+	ConfigToml string
+	Enabled    int64
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 type Registry struct {
-	ID               int64     `json:"id"`
-	Ecosystem        string    `json:"ecosystem"`
-	Mode             string    `json:"mode"`
-	Upstream         string    `json:"upstream"`
-	AutoSync         int64     `json:"auto_sync"`
-	AutoSyncInterval string    `json:"auto_sync_interval"`
-	MaxVersions      int64     `json:"max_versions"`
-	Enabled          int64     `json:"enabled"`
-	ConfigJson       string    `json:"config_json"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID               int64
+	Ecosystem        string
+	Mode             string
+	Upstream         string
+	AutoSync         int64
+	AutoSyncInterval string
+	MaxVersions      int64
+	Enabled          int64
+	ConfigJson       string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 type SchemaMigration struct {
-	Version   int64     `json:"version"`
-	AppliedAt time.Time `json:"applied_at"`
+	Version   int32
+	AppliedAt time.Time
 }
 
 type SyncJob struct {
-	ID             int64        `json:"id"`
-	RegistryType   string       `json:"registry_type"`
-	PackageName    string       `json:"package_name"`
-	Status         string       `json:"status"`
-	StartedAt      sql.NullTime `json:"started_at"`
-	CompletedAt    sql.NullTime `json:"completed_at"`
-	ErrorMessage   string       `json:"error_message"`
-	PackagesSynced int64        `json:"packages_synced"`
-	CreatedAt      time.Time    `json:"created_at"`
+	ID             int64
+	RegistryType   string
+	PackageName    string
+	Status         string
+	StartedAt      sql.NullTime
+	CompletedAt    sql.NullTime
+	ErrorMessage   string
+	PackagesSynced int64
+	CreatedAt      time.Time
 }
 
 type User struct {
-	ID           int64          `json:"id"`
-	Username     string         `json:"username"`
-	Email        sql.NullString `json:"email"`
-	PasswordHash string         `json:"password_hash"`
-	Role         string         `json:"role"`
-	Active       int64          `json:"active"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
+	ID           int64
+	Username     string
+	Email        sql.NullString
+	PasswordHash string
+	Role         string
+	Active       int64
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type UserRole struct {
-	ID           int64     `json:"id"`
-	UserID       int64     `json:"user_id"`
-	Role         string    `json:"role"`
-	RegistryType string    `json:"registry_type"`
-	Namespace    string    `json:"namespace"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID           int64
+	UserID       int64
+	Role         string
+	RegistryType string
+	Namespace    string
+	CreatedAt    time.Time
 }

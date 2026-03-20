@@ -18,8 +18,7 @@ func DefaultConfig() *Config {
 			Path: "/var/lib/kantar/data",
 		},
 		Database: DatabaseConfig{
-			Type: "sqlite",
-			Path: "/var/lib/kantar/db/kantar.db",
+			Type: "postgres",
 			Postgres: PostgresConfig{
 				Host:    "localhost",
 				Port:    5432,

@@ -44,7 +44,6 @@ type S3Config struct {
 // DatabaseConfig holds database settings.
 type DatabaseConfig struct {
 	Type     string         `toml:"type"`
-	Path     string         `toml:"path"`
 	Postgres PostgresConfig `toml:"postgres"`
 }
 

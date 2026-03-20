@@ -14,8 +14,8 @@ func TestNewTestDB(t *testing.T) {
 		t.Fatalf("ping failed: %v", err)
 	}
 
-	if db.Type() != "sqlite" {
-		t.Errorf("expected sqlite, got %s", db.Type())
+	if db.Type() != "postgres" {
+		t.Errorf("expected postgres, got %s", db.Type())
 	}
 }
 
@@ -27,7 +27,7 @@ func TestMigrations(t *testing.T) {
 
 	// Insert a user
 	_, err := db.Conn().ExecContext(ctx,
-		"INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+		"INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)",
 		"admin", "hash123", "super_admin",
 	)
 	if err != nil {
@@ -37,7 +37,7 @@ func TestMigrations(t *testing.T) {
 	// Query the user back
 	var username, role string
 	err = db.Conn().QueryRowContext(ctx,
-		"SELECT username, role FROM users WHERE username = ?", "admin",
+		"SELECT username, role FROM users WHERE username = $1", "admin",
 	).Scan(&username, &role)
 	if err != nil {
 		t.Fatalf("querying user: %v", err)
@@ -48,7 +48,7 @@ func TestMigrations(t *testing.T) {
 
 	// Verify packages table
 	_, err = db.Conn().ExecContext(ctx,
-		"INSERT INTO packages (registry_type, name, status) VALUES (?, ?, ?)",
+		"INSERT INTO packages (registry_type, name, status) VALUES ($1, $2, $3)",
 		"npm", "express", "approved",
 	)
 	if err != nil {
@@ -57,7 +57,7 @@ func TestMigrations(t *testing.T) {
 
 	var pkgName, status string
 	err = db.Conn().QueryRowContext(ctx,
-		"SELECT name, status FROM packages WHERE registry_type = ? AND name = ?", "npm", "express",
+		"SELECT name, status FROM packages WHERE registry_type = $1 AND name = $2", "npm", "express",
 	).Scan(&pkgName, &status)
 	if err != nil {
 		t.Fatalf("querying package: %v", err)
@@ -69,14 +69,14 @@ func TestMigrations(t *testing.T) {
 	// Verify foreign key: package_versions references packages
 	var pkgID int64
 	err = db.Conn().QueryRowContext(ctx,
-		"SELECT id FROM packages WHERE name = ?", "express",
+		"SELECT id FROM packages WHERE name = $1", "express",
 	).Scan(&pkgID)
 	if err != nil {
 		t.Fatalf("getting package id: %v", err)
 	}
 
 	_, err = db.Conn().ExecContext(ctx,
-		"INSERT INTO package_versions (package_id, version, size) VALUES (?, ?, ?)",
+		"INSERT INTO package_versions (package_id, version, size) VALUES ($1, $2, $3)",
 		pkgID, "4.18.2", 215000,
 	)
 	if err != nil {
@@ -85,7 +85,7 @@ func TestMigrations(t *testing.T) {
 
 	// Verify audit_logs table
 	_, err = db.Conn().ExecContext(ctx,
-		"INSERT INTO audit_logs (event, actor_username, result) VALUES (?, ?, ?)",
+		"INSERT INTO audit_logs (event, actor_username, result) VALUES ($1, $2, $3)",
 		"package.approve", "admin", "success",
 	)
 	if err != nil {
@@ -114,7 +114,7 @@ func TestParallelTestDBs(t *testing.T) {
 		t.Parallel()
 		db := NewTestDB(t)
 		_, err := db.Conn().ExecContext(context.Background(),
-			"INSERT INTO users (username, password_hash) VALUES (?, ?)", "user1", "hash1")
+			"INSERT INTO users (username, password_hash) VALUES ($1, $2)", "user1", "hash1")
 		if err != nil {
 			t.Fatalf("insert failed: %v", err)
 		}
@@ -124,7 +124,7 @@ func TestParallelTestDBs(t *testing.T) {
 		t.Parallel()
 		db := NewTestDB(t)
 		_, err := db.Conn().ExecContext(context.Background(),
-			"INSERT INTO users (username, password_hash) VALUES (?, ?)", "user2", "hash2")
+			"INSERT INTO users (username, password_hash) VALUES ($1, $2)", "user2", "hash2")
 		if err != nil {
 			t.Fatalf("insert failed: %v", err)
 		}

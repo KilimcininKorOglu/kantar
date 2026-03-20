@@ -10,7 +10,7 @@ import (
 )
 
 const countPackages = `-- name: CountPackages :one
-SELECT COUNT(*) FROM packages WHERE registry_type = ?
+SELECT COUNT(*) FROM packages WHERE registry_type = $1
 `
 
 func (q *Queries) CountPackages(ctx context.Context, registryType string) (int64, error) {
@@ -21,12 +21,12 @@ func (q *Queries) CountPackages(ctx context.Context, registryType string) (int64
 }
 
 const countPackagesByStatus = `-- name: CountPackagesByStatus :one
-SELECT COUNT(*) FROM packages WHERE registry_type = ? AND status = ?
+SELECT COUNT(*) FROM packages WHERE registry_type = $1 AND status = $2
 `
 
 type CountPackagesByStatusParams struct {
-	RegistryType string `json:"registry_type"`
-	Status       string `json:"status"`
+	RegistryType string
+	Status       string
 }
 
 func (q *Queries) CountPackagesByStatus(ctx context.Context, arg CountPackagesByStatusParams) (int64, error) {
@@ -38,19 +38,19 @@ func (q *Queries) CountPackagesByStatus(ctx context.Context, arg CountPackagesBy
 
 const createPackage = `-- name: CreatePackage :one
 INSERT INTO packages (registry_type, name, description, license, homepage, repository, status, requested_by)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at
 `
 
 type CreatePackageParams struct {
-	RegistryType string `json:"registry_type"`
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	License      string `json:"license"`
-	Homepage     string `json:"homepage"`
-	Repository   string `json:"repository"`
-	Status       string `json:"status"`
-	RequestedBy  string `json:"requested_by"`
+	RegistryType string
+	Name         string
+	Description  string
+	License      string
+	Homepage     string
+	Repository   string
+	Status       string
+	RequestedBy  string
 }
 
 func (q *Queries) CreatePackage(ctx context.Context, arg CreatePackageParams) (Package, error) {
@@ -84,7 +84,7 @@ func (q *Queries) CreatePackage(ctx context.Context, arg CreatePackageParams) (P
 }
 
 const deletePackage = `-- name: DeletePackage :exec
-DELETE FROM packages WHERE id = ?
+DELETE FROM packages WHERE id = $1
 `
 
 func (q *Queries) DeletePackage(ctx context.Context, id int64) error {
@@ -93,12 +93,12 @@ func (q *Queries) DeletePackage(ctx context.Context, id int64) error {
 }
 
 const getPackage = `-- name: GetPackage :one
-SELECT id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at FROM packages WHERE registry_type = ? AND name = ? LIMIT 1
+SELECT id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at FROM packages WHERE registry_type = $1 AND name = $2 LIMIT 1
 `
 
 type GetPackageParams struct {
-	RegistryType string `json:"registry_type"`
-	Name         string `json:"name"`
+	RegistryType string
+	Name         string
 }
 
 func (q *Queries) GetPackage(ctx context.Context, arg GetPackageParams) (Package, error) {
@@ -123,7 +123,7 @@ func (q *Queries) GetPackage(ctx context.Context, arg GetPackageParams) (Package
 }
 
 const getPackageByID = `-- name: GetPackageByID :one
-SELECT id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at FROM packages WHERE id = ? LIMIT 1
+SELECT id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at FROM packages WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetPackageByID(ctx context.Context, id int64) (Package, error) {
@@ -148,13 +148,13 @@ func (q *Queries) GetPackageByID(ctx context.Context, id int64) (Package, error)
 }
 
 const listPackages = `-- name: ListPackages :many
-SELECT id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at FROM packages WHERE registry_type = ? ORDER BY name LIMIT ? OFFSET ?
+SELECT id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at FROM packages WHERE registry_type = $1 ORDER BY name LIMIT $2 OFFSET $3
 `
 
 type ListPackagesParams struct {
-	RegistryType string `json:"registry_type"`
-	Limit        int64  `json:"limit"`
-	Offset       int64  `json:"offset"`
+	RegistryType string
+	Limit        int64
+	Offset       int64
 }
 
 func (q *Queries) ListPackages(ctx context.Context, arg ListPackagesParams) ([]Package, error) {
@@ -163,7 +163,7 @@ func (q *Queries) ListPackages(ctx context.Context, arg ListPackagesParams) ([]P
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Package{}
+	var items []Package
 	for rows.Next() {
 		var i Package
 		if err := rows.Scan(
@@ -195,14 +195,14 @@ func (q *Queries) ListPackages(ctx context.Context, arg ListPackagesParams) ([]P
 }
 
 const listPackagesByStatus = `-- name: ListPackagesByStatus :many
-SELECT id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at FROM packages WHERE registry_type = ? AND status = ? ORDER BY name LIMIT ? OFFSET ?
+SELECT id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at FROM packages WHERE registry_type = $1 AND status = $2 ORDER BY name LIMIT $3 OFFSET $4
 `
 
 type ListPackagesByStatusParams struct {
-	RegistryType string `json:"registry_type"`
-	Status       string `json:"status"`
-	Limit        int64  `json:"limit"`
-	Offset       int64  `json:"offset"`
+	RegistryType string
+	Status       string
+	Limit        int64
+	Offset       int64
 }
 
 func (q *Queries) ListPackagesByStatus(ctx context.Context, arg ListPackagesByStatusParams) ([]Package, error) {
@@ -216,7 +216,7 @@ func (q *Queries) ListPackagesByStatus(ctx context.Context, arg ListPackagesBySt
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Package{}
+	var items []Package
 	for rows.Next() {
 		var i Package
 		if err := rows.Scan(
@@ -248,14 +248,14 @@ func (q *Queries) ListPackagesByStatus(ctx context.Context, arg ListPackagesBySt
 }
 
 const searchPackages = `-- name: SearchPackages :many
-SELECT id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at FROM packages WHERE registry_type = ? AND name LIKE ? ORDER BY name LIMIT ? OFFSET ?
+SELECT id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at FROM packages WHERE registry_type = $1 AND name LIKE $2 ORDER BY name LIMIT $3 OFFSET $4
 `
 
 type SearchPackagesParams struct {
-	RegistryType string `json:"registry_type"`
-	Name         string `json:"name"`
-	Limit        int64  `json:"limit"`
-	Offset       int64  `json:"offset"`
+	RegistryType string
+	Name         string
+	Limit        int64
+	Offset       int64
 }
 
 func (q *Queries) SearchPackages(ctx context.Context, arg SearchPackagesParams) ([]Package, error) {
@@ -269,7 +269,7 @@ func (q *Queries) SearchPackages(ctx context.Context, arg SearchPackagesParams) 
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Package{}
+	var items []Package
 	for rows.Next() {
 		var i Package
 		if err := rows.Scan(
@@ -301,15 +301,15 @@ func (q *Queries) SearchPackages(ctx context.Context, arg SearchPackagesParams) 
 }
 
 const updatePackageStatus = `-- name: UpdatePackageStatus :exec
-UPDATE packages SET status = ?, approved_by = ?, blocked_reason = ?, updated_at = CURRENT_TIMESTAMP
-WHERE id = ?
+UPDATE packages SET status = $1, approved_by = $2, blocked_reason = $3, updated_at = CURRENT_TIMESTAMP
+WHERE id = $4
 `
 
 type UpdatePackageStatusParams struct {
-	Status        string `json:"status"`
-	ApprovedBy    string `json:"approved_by"`
-	BlockedReason string `json:"blocked_reason"`
-	ID            int64  `json:"id"`
+	Status        string
+	ApprovedBy    string
+	BlockedReason string
+	ID            int64
 }
 
 func (q *Queries) UpdatePackageStatus(ctx context.Context, arg UpdatePackageStatusParams) error {

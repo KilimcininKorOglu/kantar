@@ -29,16 +29,15 @@ path = "/var/lib/kantar/data"
 # region = "us-east-1"
 
 [database]
-type = "sqlite"
-path = "/var/lib/kantar/db/kantar.db"
+type = "postgres"
 
-# [database.postgres]
-# host = "localhost"
-# port = 5432
-# name = "kantar"
-# user = "kantar"
-# password = "${KANTAR_DB_PASSWORD}"
-# ssl_mode = "require"
+[database.postgres]
+host = "localhost"
+port = 5432
+name = "kantar"
+user = "kantar"
+password = "${KANTAR_DB_PASSWORD}"
+ssl_mode = "disable"
 
 [auth]
 type = "local"

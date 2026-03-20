@@ -13,14 +13,14 @@ import (
 // MigrateWithFS runs migrations using the provided filesystem.
 // Migration files must be named NNN_description.sql (e.g., 001_initial_schema.sql).
 func (db *DB) MigrateWithFS(ctx context.Context, migrations fs.FS) error {
-	return runMigrations(ctx, db.conn, db.cfg.Type, migrations)
+	return runMigrations(ctx, db.conn, migrations)
 }
 
-func runMigrations(ctx context.Context, conn *sql.DB, dbType string, migrations fs.FS) error {
+func runMigrations(ctx context.Context, conn *sql.DB, migrations fs.FS) error {
 	// Ensure schema_migrations table exists
 	_, err := conn.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS schema_migrations (
-			version INTEGER PRIMARY KEY,
+			version INT PRIMARY KEY,
 			applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
@@ -56,7 +56,7 @@ func runMigrations(ctx context.Context, conn *sql.DB, dbType string, migrations 
 			return fmt.Errorf("reading migration %s: %w", entry, err)
 		}
 
-		sqlStr := adaptSQL(string(content), dbType)
+		sqlStr := string(content)
 
 		tx, err := conn.BeginTx(ctx, nil)
 		if err != nil {
@@ -69,7 +69,7 @@ func runMigrations(ctx context.Context, conn *sql.DB, dbType string, migrations 
 		}
 
 		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO schema_migrations (version) VALUES (?)", version); err != nil {
+			"INSERT INTO schema_migrations (version) VALUES ($1)", version); err != nil {
 			tx.Rollback()
 			return fmt.Errorf("recording migration %d: %w", version, err)
 		}
@@ -113,10 +113,3 @@ func extractVersion(filename string) int {
 	return v
 }
 
-// adaptSQL converts SQL for the target database dialect.
-func adaptSQL(sqlStr string, dbType string) string {
-	if dbType == "postgres" {
-		sqlStr = strings.ReplaceAll(sqlStr, "INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
-	}
-	return sqlStr
-}

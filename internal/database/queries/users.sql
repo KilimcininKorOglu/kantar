@@ -1,23 +1,23 @@
 -- name: GetUserByUsername :one
-SELECT * FROM users WHERE username = ? LIMIT 1;
+SELECT * FROM users WHERE username = $1 LIMIT 1;
 
 -- name: GetUserByID :one
-SELECT * FROM users WHERE id = ? LIMIT 1;
+SELECT * FROM users WHERE id = $1 LIMIT 1;
 
 -- name: ListUsers :many
-SELECT * FROM users ORDER BY username LIMIT ? OFFSET ?;
+SELECT * FROM users ORDER BY username LIMIT $1 OFFSET $2;
 
 -- name: CreateUser :one
 INSERT INTO users (username, email, password_hash, role)
-VALUES (?, ?, ?, ?)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: UpdateUser :exec
-UPDATE users SET email = ?, role = ?, active = ?, updated_at = CURRENT_TIMESTAMP
-WHERE id = ?;
+UPDATE users SET email = $1, role = $2, active = $3, updated_at = CURRENT_TIMESTAMP
+WHERE id = $4;
 
 -- name: DeleteUser :exec
-DELETE FROM users WHERE id = ?;
+DELETE FROM users WHERE id = $1;
 
 -- name: CountUsers :one
 SELECT COUNT(*) FROM users;

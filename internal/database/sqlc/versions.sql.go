@@ -11,7 +11,7 @@ import (
 )
 
 const countPackageVersions = `-- name: CountPackageVersions :one
-SELECT COUNT(*) FROM package_versions WHERE package_id = ?
+SELECT COUNT(*) FROM package_versions WHERE package_id = $1
 `
 
 func (q *Queries) CountPackageVersions(ctx context.Context, packageID int64) (int64, error) {
@@ -23,19 +23,19 @@ func (q *Queries) CountPackageVersions(ctx context.Context, packageID int64) (in
 
 const createPackageVersion = `-- name: CreatePackageVersion :one
 INSERT INTO package_versions (package_id, version, size, checksum_sha256, checksum_sha1, storage_path, metadata_json, synced_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING id, package_id, version, size, checksum_sha256, checksum_sha1, storage_path, deprecated, yanked, metadata_json, synced_at, created_at
 `
 
 type CreatePackageVersionParams struct {
-	PackageID      int64        `json:"package_id"`
-	Version        string       `json:"version"`
-	Size           int64        `json:"size"`
-	ChecksumSha256 string       `json:"checksum_sha256"`
-	ChecksumSha1   string       `json:"checksum_sha1"`
-	StoragePath    string       `json:"storage_path"`
-	MetadataJson   string       `json:"metadata_json"`
-	SyncedAt       sql.NullTime `json:"synced_at"`
+	PackageID      int64
+	Version        string
+	Size           int64
+	ChecksumSha256 string
+	ChecksumSha1   string
+	StoragePath    string
+	MetadataJson   string
+	SyncedAt       sql.NullTime
 }
 
 func (q *Queries) CreatePackageVersion(ctx context.Context, arg CreatePackageVersionParams) (PackageVersion, error) {
@@ -68,7 +68,7 @@ func (q *Queries) CreatePackageVersion(ctx context.Context, arg CreatePackageVer
 }
 
 const deletePackageVersion = `-- name: DeletePackageVersion :exec
-DELETE FROM package_versions WHERE id = ?
+DELETE FROM package_versions WHERE id = $1
 `
 
 func (q *Queries) DeletePackageVersion(ctx context.Context, id int64) error {
@@ -77,12 +77,12 @@ func (q *Queries) DeletePackageVersion(ctx context.Context, id int64) error {
 }
 
 const getPackageVersion = `-- name: GetPackageVersion :one
-SELECT id, package_id, version, size, checksum_sha256, checksum_sha1, storage_path, deprecated, yanked, metadata_json, synced_at, created_at FROM package_versions WHERE package_id = ? AND version = ? LIMIT 1
+SELECT id, package_id, version, size, checksum_sha256, checksum_sha1, storage_path, deprecated, yanked, metadata_json, synced_at, created_at FROM package_versions WHERE package_id = $1 AND version = $2 LIMIT 1
 `
 
 type GetPackageVersionParams struct {
-	PackageID int64  `json:"package_id"`
-	Version   string `json:"version"`
+	PackageID int64
+	Version   string
 }
 
 func (q *Queries) GetPackageVersion(ctx context.Context, arg GetPackageVersionParams) (PackageVersion, error) {
@@ -106,13 +106,13 @@ func (q *Queries) GetPackageVersion(ctx context.Context, arg GetPackageVersionPa
 }
 
 const listPackageVersions = `-- name: ListPackageVersions :many
-SELECT id, package_id, version, size, checksum_sha256, checksum_sha1, storage_path, deprecated, yanked, metadata_json, synced_at, created_at FROM package_versions WHERE package_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?
+SELECT id, package_id, version, size, checksum_sha256, checksum_sha1, storage_path, deprecated, yanked, metadata_json, synced_at, created_at FROM package_versions WHERE package_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3
 `
 
 type ListPackageVersionsParams struct {
-	PackageID int64 `json:"package_id"`
-	Limit     int64 `json:"limit"`
-	Offset    int64 `json:"offset"`
+	PackageID int64
+	Limit     int64
+	Offset    int64
 }
 
 func (q *Queries) ListPackageVersions(ctx context.Context, arg ListPackageVersionsParams) ([]PackageVersion, error) {
@@ -121,7 +121,7 @@ func (q *Queries) ListPackageVersions(ctx context.Context, arg ListPackageVersio
 		return nil, err
 	}
 	defer rows.Close()
-	items := []PackageVersion{}
+	var items []PackageVersion
 	for rows.Next() {
 		var i PackageVersion
 		if err := rows.Scan(

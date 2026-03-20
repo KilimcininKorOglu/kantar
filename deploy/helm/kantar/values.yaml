@@ -30,10 +30,9 @@ resources:
     memory: 256Mi
 
 database:
-  type: sqlite
+  type: postgres
   postgres:
-    enabled: false
-    host: ""
+    host: "postgres"
     port: 5432
     name: kantar
     user: kantar

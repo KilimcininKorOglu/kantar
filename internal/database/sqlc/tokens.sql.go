@@ -12,16 +12,16 @@ import (
 
 const createAPIToken = `-- name: CreateAPIToken :one
 INSERT INTO api_tokens (user_id, name, token_hash, token_prefix, expires_at)
-VALUES (?, ?, ?, ?, ?)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id, user_id, name, token_hash, token_prefix, expires_at, last_used_at, created_at
 `
 
 type CreateAPITokenParams struct {
-	UserID      int64        `json:"user_id"`
-	Name        string       `json:"name"`
-	TokenHash   string       `json:"token_hash"`
-	TokenPrefix string       `json:"token_prefix"`
-	ExpiresAt   sql.NullTime `json:"expires_at"`
+	UserID      int64
+	Name        string
+	TokenHash   string
+	TokenPrefix string
+	ExpiresAt   sql.NullTime
 }
 
 func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) (ApiToken, error) {
@@ -48,15 +48,15 @@ func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) 
 
 const createUserRole = `-- name: CreateUserRole :one
 INSERT INTO user_roles (user_id, role, registry_type, namespace)
-VALUES (?, ?, ?, ?)
+VALUES ($1, $2, $3, $4)
 RETURNING id, user_id, role, registry_type, namespace, created_at
 `
 
 type CreateUserRoleParams struct {
-	UserID       int64  `json:"user_id"`
-	Role         string `json:"role"`
-	RegistryType string `json:"registry_type"`
-	Namespace    string `json:"namespace"`
+	UserID       int64
+	Role         string
+	RegistryType string
+	Namespace    string
 }
 
 func (q *Queries) CreateUserRole(ctx context.Context, arg CreateUserRoleParams) (UserRole, error) {
@@ -79,7 +79,7 @@ func (q *Queries) CreateUserRole(ctx context.Context, arg CreateUserRoleParams) 
 }
 
 const deleteAPIToken = `-- name: DeleteAPIToken :exec
-DELETE FROM api_tokens WHERE id = ?
+DELETE FROM api_tokens WHERE id = $1
 `
 
 func (q *Queries) DeleteAPIToken(ctx context.Context, id int64) error {
@@ -88,7 +88,7 @@ func (q *Queries) DeleteAPIToken(ctx context.Context, id int64) error {
 }
 
 const deleteUserRole = `-- name: DeleteUserRole :exec
-DELETE FROM user_roles WHERE id = ?
+DELETE FROM user_roles WHERE id = $1
 `
 
 func (q *Queries) DeleteUserRole(ctx context.Context, id int64) error {
@@ -97,7 +97,7 @@ func (q *Queries) DeleteUserRole(ctx context.Context, id int64) error {
 }
 
 const getAPIToken = `-- name: GetAPIToken :one
-SELECT id, user_id, name, token_hash, token_prefix, expires_at, last_used_at, created_at FROM api_tokens WHERE token_hash = ? LIMIT 1
+SELECT id, user_id, name, token_hash, token_prefix, expires_at, last_used_at, created_at FROM api_tokens WHERE token_hash = $1 LIMIT 1
 `
 
 func (q *Queries) GetAPIToken(ctx context.Context, tokenHash string) (ApiToken, error) {
@@ -117,14 +117,14 @@ func (q *Queries) GetAPIToken(ctx context.Context, tokenHash string) (ApiToken, 
 }
 
 const getUserRole = `-- name: GetUserRole :one
-SELECT id, user_id, role, registry_type, namespace, created_at FROM user_roles WHERE user_id = ? AND role = ? AND registry_type = ? AND namespace = ? LIMIT 1
+SELECT id, user_id, role, registry_type, namespace, created_at FROM user_roles WHERE user_id = $1 AND role = $2 AND registry_type = $3 AND namespace = $4 LIMIT 1
 `
 
 type GetUserRoleParams struct {
-	UserID       int64  `json:"user_id"`
-	Role         string `json:"role"`
-	RegistryType string `json:"registry_type"`
-	Namespace    string `json:"namespace"`
+	UserID       int64
+	Role         string
+	RegistryType string
+	Namespace    string
 }
 
 func (q *Queries) GetUserRole(ctx context.Context, arg GetUserRoleParams) (UserRole, error) {
@@ -147,7 +147,7 @@ func (q *Queries) GetUserRole(ctx context.Context, arg GetUserRoleParams) (UserR
 }
 
 const listAPITokensByUser = `-- name: ListAPITokensByUser :many
-SELECT id, user_id, name, token_hash, token_prefix, expires_at, last_used_at, created_at FROM api_tokens WHERE user_id = ? ORDER BY created_at DESC
+SELECT id, user_id, name, token_hash, token_prefix, expires_at, last_used_at, created_at FROM api_tokens WHERE user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) ListAPITokensByUser(ctx context.Context, userID int64) ([]ApiToken, error) {
@@ -156,7 +156,7 @@ func (q *Queries) ListAPITokensByUser(ctx context.Context, userID int64) ([]ApiT
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ApiToken{}
+	var items []ApiToken
 	for rows.Next() {
 		var i ApiToken
 		if err := rows.Scan(
@@ -183,7 +183,7 @@ func (q *Queries) ListAPITokensByUser(ctx context.Context, userID int64) ([]ApiT
 }
 
 const listUserRoles = `-- name: ListUserRoles :many
-SELECT id, user_id, role, registry_type, namespace, created_at FROM user_roles WHERE user_id = ?
+SELECT id, user_id, role, registry_type, namespace, created_at FROM user_roles WHERE user_id = $1
 `
 
 func (q *Queries) ListUserRoles(ctx context.Context, userID int64) ([]UserRole, error) {
@@ -192,7 +192,7 @@ func (q *Queries) ListUserRoles(ctx context.Context, userID int64) ([]UserRole, 
 		return nil, err
 	}
 	defer rows.Close()
-	items := []UserRole{}
+	var items []UserRole
 	for rows.Next() {
 		var i UserRole
 		if err := rows.Scan(
@@ -217,7 +217,7 @@ func (q *Queries) ListUserRoles(ctx context.Context, userID int64) ([]UserRole, 
 }
 
 const updateAPITokenLastUsed = `-- name: UpdateAPITokenLastUsed :exec
-UPDATE api_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?
+UPDATE api_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE id = $1
 `
 
 func (q *Queries) UpdateAPITokenLastUsed(ctx context.Context, id int64) error {

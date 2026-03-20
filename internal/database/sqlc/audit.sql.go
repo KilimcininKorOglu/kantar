@@ -22,22 +22,22 @@ func (q *Queries) CountAuditLogs(ctx context.Context) (int64, error) {
 
 const createAuditLog = `-- name: CreateAuditLog :one
 INSERT INTO audit_logs (event, actor_username, actor_ip, actor_user_agent, resource_registry, resource_package, resource_version, result, metadata_json, prev_hash, hash)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 RETURNING id, timestamp, event, actor_username, actor_ip, actor_user_agent, resource_registry, resource_package, resource_version, result, metadata_json, prev_hash, hash
 `
 
 type CreateAuditLogParams struct {
-	Event            string `json:"event"`
-	ActorUsername    string `json:"actor_username"`
-	ActorIp          string `json:"actor_ip"`
-	ActorUserAgent   string `json:"actor_user_agent"`
-	ResourceRegistry string `json:"resource_registry"`
-	ResourcePackage  string `json:"resource_package"`
-	ResourceVersion  string `json:"resource_version"`
-	Result           string `json:"result"`
-	MetadataJson     string `json:"metadata_json"`
-	PrevHash         string `json:"prev_hash"`
-	Hash             string `json:"hash"`
+	Event            string
+	ActorUsername    string
+	ActorIp          string
+	ActorUserAgent   string
+	ResourceRegistry string
+	ResourcePackage  string
+	ResourceVersion  string
+	Result           string
+	MetadataJson     string
+	PrevHash         string
+	Hash             string
 }
 
 func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error) {
@@ -99,12 +99,12 @@ func (q *Queries) GetLatestAuditLog(ctx context.Context) (AuditLog, error) {
 }
 
 const listAuditLogs = `-- name: ListAuditLogs :many
-SELECT id, timestamp, event, actor_username, actor_ip, actor_user_agent, resource_registry, resource_package, resource_version, result, metadata_json, prev_hash, hash FROM audit_logs ORDER BY timestamp DESC LIMIT ? OFFSET ?
+SELECT id, timestamp, event, actor_username, actor_ip, actor_user_agent, resource_registry, resource_package, resource_version, result, metadata_json, prev_hash, hash FROM audit_logs ORDER BY timestamp DESC LIMIT $1 OFFSET $2
 `
 
 type ListAuditLogsParams struct {
-	Limit  int64 `json:"limit"`
-	Offset int64 `json:"offset"`
+	Limit  int64
+	Offset int64
 }
 
 func (q *Queries) ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]AuditLog, error) {
@@ -113,7 +113,7 @@ func (q *Queries) ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([
 		return nil, err
 	}
 	defer rows.Close()
-	items := []AuditLog{}
+	var items []AuditLog
 	for rows.Next() {
 		var i AuditLog
 		if err := rows.Scan(
@@ -145,13 +145,13 @@ func (q *Queries) ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([
 }
 
 const listAuditLogsByActor = `-- name: ListAuditLogsByActor :many
-SELECT id, timestamp, event, actor_username, actor_ip, actor_user_agent, resource_registry, resource_package, resource_version, result, metadata_json, prev_hash, hash FROM audit_logs WHERE actor_username = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?
+SELECT id, timestamp, event, actor_username, actor_ip, actor_user_agent, resource_registry, resource_package, resource_version, result, metadata_json, prev_hash, hash FROM audit_logs WHERE actor_username = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3
 `
 
 type ListAuditLogsByActorParams struct {
-	ActorUsername string `json:"actor_username"`
-	Limit         int64  `json:"limit"`
-	Offset        int64  `json:"offset"`
+	ActorUsername string
+	Limit         int64
+	Offset        int64
 }
 
 func (q *Queries) ListAuditLogsByActor(ctx context.Context, arg ListAuditLogsByActorParams) ([]AuditLog, error) {
@@ -160,7 +160,7 @@ func (q *Queries) ListAuditLogsByActor(ctx context.Context, arg ListAuditLogsByA
 		return nil, err
 	}
 	defer rows.Close()
-	items := []AuditLog{}
+	var items []AuditLog
 	for rows.Next() {
 		var i AuditLog
 		if err := rows.Scan(
@@ -192,13 +192,13 @@ func (q *Queries) ListAuditLogsByActor(ctx context.Context, arg ListAuditLogsByA
 }
 
 const listAuditLogsByEvent = `-- name: ListAuditLogsByEvent :many
-SELECT id, timestamp, event, actor_username, actor_ip, actor_user_agent, resource_registry, resource_package, resource_version, result, metadata_json, prev_hash, hash FROM audit_logs WHERE event = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?
+SELECT id, timestamp, event, actor_username, actor_ip, actor_user_agent, resource_registry, resource_package, resource_version, result, metadata_json, prev_hash, hash FROM audit_logs WHERE event = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3
 `
 
 type ListAuditLogsByEventParams struct {
-	Event  string `json:"event"`
-	Limit  int64  `json:"limit"`
-	Offset int64  `json:"offset"`
+	Event  string
+	Limit  int64
+	Offset int64
 }
 
 func (q *Queries) ListAuditLogsByEvent(ctx context.Context, arg ListAuditLogsByEventParams) ([]AuditLog, error) {
@@ -207,7 +207,7 @@ func (q *Queries) ListAuditLogsByEvent(ctx context.Context, arg ListAuditLogsByE
 		return nil, err
 	}
 	defer rows.Close()
-	items := []AuditLog{}
+	var items []AuditLog
 	for rows.Next() {
 		var i AuditLog
 		if err := rows.Scan(

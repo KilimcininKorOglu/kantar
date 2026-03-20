@@ -34,7 +34,7 @@ export default function Settings() {
       <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
         <h3 className="text-sm font-medium text-slate-400 mb-4">Configuration</h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <InfoRow label="Database" value="SQLite" />
+          <InfoRow label="Database" value="PostgreSQL" />
           <InfoRow label="Storage" value="Filesystem" />
           <InfoRow label="Cache" value="In-Memory" />
           <InfoRow label="Auth" value="Local" />

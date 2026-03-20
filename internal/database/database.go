@@ -21,12 +21,10 @@ func New(cfg config.DatabaseConfig) (*DB, error) {
 	var err error
 
 	switch cfg.Type {
-	case "sqlite":
-		conn, err = openSQLite(cfg.Path)
 	case "postgres":
 		conn, err = openPostgres(cfg.Postgres)
 	default:
-		return nil, fmt.Errorf("unsupported database type: %s", cfg.Type)
+		return nil, fmt.Errorf("unsupported database type: %s (only postgres is supported)", cfg.Type)
 	}
 
 	if err != nil {
@@ -57,7 +55,7 @@ func (db *DB) Ping(ctx context.Context) error {
 	return db.conn.PingContext(ctx)
 }
 
-// Type returns the database type (sqlite or postgres).
+// Type returns the database type.
 func (db *DB) Type() string {
 	return db.cfg.Type
 }
