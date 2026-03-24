@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api/client'
-import type { SystemStatus } from '../api/types'
+import type { SystemStatus, AuditLogEntry } from '../api/types'
 
 const ecosystems = [
   { name: 'Docker', key: 'docker' },
@@ -15,6 +15,7 @@ const ecosystems = [
 
 export default function Dashboard() {
   const [status, setStatus] = useState<SystemStatus | null>(null)
+  const [recentActivity, setRecentActivity] = useState<AuditLogEntry[]>([])
 
   useEffect(() => {
     const fetchStatus = () => {
@@ -25,6 +26,12 @@ export default function Dashboard() {
     fetchStatus()
     const interval = setInterval(fetchStatus, 30000)
     return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    api.get<AuditLogEntry[]>('/audit?limit=5')
+      .then(setRecentActivity)
+      .catch(() => {})
   }, [])
 
   return (
@@ -84,7 +91,25 @@ export default function Dashboard() {
       <div>
         <h3 className="text-sm font-medium text-slate-400 mb-3">Recent Activity</h3>
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <p className="text-sm text-slate-600 text-center py-4">No recent activity</p>
+          {recentActivity.length === 0 ? (
+            <p className="text-sm text-slate-600 text-center py-4">No recent activity</p>
+          ) : (
+            <div className="space-y-2">
+              {recentActivity.map((a) => (
+                <div key={a.id} className="flex items-center justify-between text-sm py-1 border-b border-slate-800/50 last:border-0">
+                  <div className="flex items-center gap-3">
+                    <span className={`px-2 py-0.5 text-xs rounded ${
+                      a.event.startsWith('user.') ? 'bg-blue-900/40 text-blue-300' :
+                      a.event.startsWith('package.') ? 'bg-purple-900/40 text-purple-300' :
+                      'bg-slate-800 text-slate-300'
+                    }`}>{a.event}</span>
+                    <span className="text-white">{a.actorUsername}</span>
+                  </div>
+                  <span className="text-slate-500 text-xs">{new Date(a.timestamp).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

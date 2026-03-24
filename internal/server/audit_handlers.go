@@ -3,9 +3,44 @@ package server
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/KilimcininKorOglu/kantar/internal/database/sqlc"
 )
+
+type auditLogResponse struct {
+	ID               int64     `json:"id"`
+	Timestamp        time.Time `json:"timestamp"`
+	Event            string    `json:"event"`
+	ActorUsername     string    `json:"actorUsername"`
+	ActorIP          string    `json:"actorIp"`
+	ActorUserAgent   string    `json:"actorUserAgent"`
+	ResourceRegistry string    `json:"resourceRegistry"`
+	ResourcePackage  string    `json:"resourcePackage"`
+	ResourceVersion  string    `json:"resourceVersion"`
+	Result           string    `json:"result"`
+	MetadataJSON     string    `json:"metadataJson"`
+	PrevHash         string    `json:"prevHash"`
+	Hash             string    `json:"hash"`
+}
+
+func toAuditLogResponse(a sqlc.AuditLog) auditLogResponse {
+	return auditLogResponse{
+		ID:               a.ID,
+		Timestamp:        a.Timestamp,
+		Event:            a.Event,
+		ActorUsername:     a.ActorUsername,
+		ActorIP:          a.ActorIp,
+		ActorUserAgent:   a.ActorUserAgent,
+		ResourceRegistry: a.ResourceRegistry,
+		ResourcePackage:  a.ResourcePackage,
+		ResourceVersion:  a.ResourceVersion,
+		Result:           a.Result,
+		MetadataJSON:     a.MetadataJson,
+		PrevHash:         a.PrevHash,
+		Hash:             a.Hash,
+	}
+}
 
 func (s *Server) handleListAuditLogs(w http.ResponseWriter, r *http.Request) {
 	if s.deps.Queries == nil {
@@ -28,7 +63,12 @@ func (s *Server) handleListAuditLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, logs)
+	resp := make([]auditLogResponse, len(logs))
+	for i, l := range logs {
+		resp[i] = toAuditLogResponse(l)
+	}
+
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) handleVerifyAuditChain(w http.ResponseWriter, r *http.Request) {

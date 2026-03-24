@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -11,6 +12,40 @@ import (
 	"github.com/KilimcininKorOglu/kantar/internal/auth"
 	"github.com/KilimcininKorOglu/kantar/internal/database/sqlc"
 )
+
+type packageResponse struct {
+	ID            int64     `json:"id"`
+	RegistryType  string    `json:"registryType"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	License       string    `json:"license"`
+	Homepage      string    `json:"homepage"`
+	Repository    string    `json:"repository"`
+	Status        string    `json:"status"`
+	RequestedBy   string    `json:"requestedBy"`
+	ApprovedBy    string    `json:"approvedBy"`
+	BlockedReason string    `json:"blockedReason"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+}
+
+func toPackageResponse(p sqlc.Package) packageResponse {
+	return packageResponse{
+		ID:            p.ID,
+		RegistryType:  p.RegistryType,
+		Name:          p.Name,
+		Description:   p.Description,
+		License:       p.License,
+		Homepage:      p.Homepage,
+		Repository:    p.Repository,
+		Status:        p.Status,
+		RequestedBy:   p.RequestedBy,
+		ApprovedBy:    p.ApprovedBy,
+		BlockedReason: p.BlockedReason,
+		CreatedAt:     p.CreatedAt,
+		UpdatedAt:     p.UpdatedAt,
+	}
+}
 
 func (s *Server) handleListPackages(w http.ResponseWriter, r *http.Request) {
 	if s.deps.Queries == nil {
@@ -20,41 +55,74 @@ func (s *Server) handleListPackages(w http.ResponseWriter, r *http.Request) {
 
 	registry := r.URL.Query().Get("registry")
 	status := r.URL.Query().Get("status")
+	search := r.URL.Query().Get("search")
 	limit, _ := strconv.ParseInt(r.URL.Query().Get("limit"), 10, 64)
 	offset, _ := strconv.ParseInt(r.URL.Query().Get("offset"), 10, 64)
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
+	if registry == "" {
+		registry = "npm"
+	}
 
-	if status != "" && registry != "" {
-		pkgs, err := s.deps.Queries.ListPackagesByStatus(r.Context(), sqlc.ListPackagesByStatusParams{
+	var pkgs []sqlc.Package
+	var err error
+
+	switch {
+	case search != "":
+		pkgs, err = s.deps.Queries.SearchPackages(r.Context(), sqlc.SearchPackagesParams{
+			RegistryType: registry,
+			Name:         "%" + search + "%",
+			Limit:        limit,
+			Offset:       offset,
+		})
+	case status != "":
+		pkgs, err = s.deps.Queries.ListPackagesByStatus(r.Context(), sqlc.ListPackagesByStatusParams{
 			RegistryType: registry,
 			Status:       status,
 			Limit:        limit,
 			Offset:       offset,
 		})
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to list packages")
-			return
-		}
-		writeJSON(w, http.StatusOK, pkgs)
-		return
+	default:
+		pkgs, err = s.deps.Queries.ListPackages(r.Context(), sqlc.ListPackagesParams{
+			RegistryType: registry,
+			Limit:        limit,
+			Offset:       offset,
+		})
 	}
 
-	if registry == "" {
-		registry = "npm"
-	}
-
-	pkgs, err := s.deps.Queries.ListPackages(r.Context(), sqlc.ListPackagesParams{
-		RegistryType: registry,
-		Limit:        limit,
-		Offset:       offset,
-	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list packages")
 		return
 	}
-	writeJSON(w, http.StatusOK, pkgs)
+
+	resp := make([]packageResponse, len(pkgs))
+	for i, p := range pkgs {
+		resp[i] = toPackageResponse(p)
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *Server) handleGetPackageByName(w http.ResponseWriter, r *http.Request) {
+	if s.deps.Queries == nil {
+		writeError(w, http.StatusServiceUnavailable, "service not ready")
+		return
+	}
+
+	registry := chi.URLParam(r, "registry")
+	name := chi.URLParam(r, "name")
+
+	pkg, err := s.deps.Queries.GetPackage(r.Context(), sqlc.GetPackageParams{
+		RegistryType: registry,
+		Name:         name,
+	})
+	if err != nil {
+		writeError(w, http.StatusNotFound, "package not found")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, toPackageResponse(pkg))
 }
 
 func (s *Server) handleGetPackage(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +143,7 @@ func (s *Server) handleGetPackage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, pkg)
+	writeJSON(w, http.StatusOK, toPackageResponse(pkg))
 }
 
 func (s *Server) handleApprovePackage(w http.ResponseWriter, r *http.Request) {

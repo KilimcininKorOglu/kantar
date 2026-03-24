@@ -17,10 +17,9 @@ type loginRequest struct {
 }
 
 type loginResponse struct {
-	Token     string    `json:"token"`
-	ExpiresAt time.Time `json:"expiresAt"`
-	Username  string    `json:"username"`
-	Role      string    `json:"role"`
+	Token     string       `json:"token"`
+	ExpiresAt time.Time    `json:"expiresAt"`
+	User      userResponse `json:"user"`
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -74,8 +73,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, loginResponse{
 		Token:     token,
 		ExpiresAt: expiresAt,
-		Username:  user.Username,
-		Role:      user.Role,
+		User:      toUserResponse(user),
 	})
 }
 

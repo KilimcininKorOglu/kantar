@@ -150,6 +150,7 @@ func (s *Server) setupAPIRoutes(r chi.Router) {
 		r.Route("/packages", func(r chi.Router) {
 			r.Use(auth.RequireRole(auth.RoleConsumer))
 			r.Get("/", s.handleListPackages)
+			r.Get("/by-name/{registry}/{name}", s.handleGetPackageByName)
 			r.Get("/{id}", s.handleGetPackage)
 
 			r.Group(func(r chi.Router) {
