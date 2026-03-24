@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { api } from '../api/client'
 import type { SystemStatus } from '../api/types'
 
 const ecosystems = [
@@ -16,11 +17,10 @@ export default function Dashboard() {
   const [status, setStatus] = useState<SystemStatus | null>(null)
 
   useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch('/api/v1/system/status')
-        if (res.ok) setStatus(await res.json())
-      } catch { /* ignore */ }
+    const fetchStatus = () => {
+      api.get<SystemStatus>('/system/status')
+        .then(setStatus)
+        .catch(() => {})
     }
     fetchStatus()
     const interval = setInterval(fetchStatus, 30000)

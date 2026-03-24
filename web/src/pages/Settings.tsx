@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
+import { api } from '../api/client'
 import type { SystemStatus } from '../api/types'
 
 export default function Settings() {
   const [status, setStatus] = useState<SystemStatus | null>(null)
 
   useEffect(() => {
-    fetch('/api/v1/system/status')
-      .then((r) => r.json())
+    api.get<SystemStatus>('/system/status')
       .then(setStatus)
       .catch(() => {})
   }, [])
