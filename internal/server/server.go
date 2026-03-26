@@ -17,6 +17,7 @@ import (
 	"github.com/KilimcininKorOglu/kantar/internal/config"
 	"github.com/KilimcininKorOglu/kantar/internal/database/sqlc"
 	"github.com/KilimcininKorOglu/kantar/internal/manager"
+	syncp "github.com/KilimcininKorOglu/kantar/internal/sync"
 )
 
 // Dependencies holds all subsystem dependencies the server needs for API handlers.
@@ -25,6 +26,7 @@ type Dependencies struct {
 	JWTManager  *auth.JWTManager
 	Manager     *manager.Manager
 	AuditLogger *audit.Logger
+	SyncEngine  *syncp.Engine
 }
 
 // Server is the main HTTP server for Kantar.
@@ -165,6 +167,13 @@ func (s *Server) setupAPIRoutes(r chi.Router) {
 			r.Use(auth.RequireRole(auth.RoleRegistryAdmin))
 			r.Get("/", s.handleListAuditLogs)
 			r.Get("/verify", s.handleVerifyAuditChain)
+		})
+
+		// Sync jobs — registry_admin+
+		r.Route("/sync/jobs", func(r chi.Router) {
+			r.Use(auth.RequireRole(auth.RoleRegistryAdmin))
+			r.Get("/", s.handleListSyncJobs)
+			r.Get("/{id}", s.handleGetSyncJob)
 		})
 	})
 }

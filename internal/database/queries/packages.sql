@@ -30,3 +30,9 @@ SELECT COUNT(*) FROM packages WHERE registry_type = $1;
 
 -- name: CountPackagesByStatus :one
 SELECT COUNT(*) FROM packages WHERE registry_type = $1 AND status = $2;
+
+-- name: UpsertPackage :one
+INSERT INTO packages (registry_type, name, status, requested_by)
+VALUES ($1, $2, 'pending', $3)
+ON CONFLICT (registry_type, name) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+RETURNING *;

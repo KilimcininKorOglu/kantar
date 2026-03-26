@@ -14,3 +14,9 @@ DELETE FROM package_versions WHERE id = $1;
 
 -- name: CountPackageVersions :one
 SELECT COUNT(*) FROM package_versions WHERE package_id = $1;
+
+-- name: UpsertPackageVersion :one
+INSERT INTO package_versions (package_id, version, size, checksum_sha256, checksum_sha1, storage_path, metadata_json, synced_at)
+VALUES ($1, $2, 0, '', '', '', '{}', CURRENT_TIMESTAMP)
+ON CONFLICT (package_id, version) DO UPDATE SET synced_at = CURRENT_TIMESTAMP
+RETURNING *;

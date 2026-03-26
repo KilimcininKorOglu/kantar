@@ -31,6 +31,8 @@ import (
 	"github.com/KilimcininKorOglu/kantar/internal/plugins/pypi"
 	"github.com/KilimcininKorOglu/kantar/internal/server"
 	"github.com/KilimcininKorOglu/kantar/internal/storage"
+	syncp "github.com/KilimcininKorOglu/kantar/internal/sync"
+	"github.com/KilimcininKorOglu/kantar/pkg/registry"
 	"github.com/KilimcininKorOglu/kantar/internal/util"
 	"github.com/KilimcininKorOglu/kantar/migrations"
 	"github.com/KilimcininKorOglu/kantar/web"
@@ -175,25 +177,41 @@ func buildApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*se
 
 	// 8. Plugin Registry
 	pluginReg := plugin.NewRegistry(logger)
-	registerPlugins(pluginReg, store, logger)
+	npmPlugin := npm.New(store, logger)
+	_ = pluginReg.Register(docker.New(store, logger))
+	_ = pluginReg.Register(npmPlugin)
+	_ = pluginReg.Register(pypi.New(store, logger))
+	_ = pluginReg.Register(gomod.New(store, logger))
+	_ = pluginReg.Register(cargo.New(store, logger))
+	_ = pluginReg.Register(maven.New(store, logger))
+	_ = pluginReg.Register(nuget.New(store, logger))
+	_ = pluginReg.Register(helm.New(store, logger))
+
 	pluginConfigs := buildPluginConfigs(cfg.Registries)
 	if err := pluginReg.ConfigureAll(pluginConfigs); err != nil {
 		logger.Warn("plugin configuration error", "error", err)
 	}
 
-	// 9. Server
+	// 9. Sync Engine
+	syncEngine := syncp.NewEngine(rawDB, auditLog, logger)
+	syncEngine.RegisterResolver(registry.EcosystemNPM, npmPlugin)
+	syncEngine.Start(ctx, 3)
+	logger.Info("sync engine started", "workers", 3)
+
+	// 10. Server
 	deps := server.Dependencies{
 		Queries:     queries,
 		JWTManager:  jwtMgr,
 		Manager:     mgr,
 		AuditLogger: auditLog,
+		SyncEngine:  syncEngine,
 	}
 	srv := server.New(cfg.Server, logger, deps)
 
-	// 10. Mount plugin routes
+	// 11. Mount plugin routes
 	pluginReg.MountRoutes(srv.Router())
 
-	// 11. Mount Web UI (LAST — catch-all route)
+	// 12. Mount Web UI (LAST — catch-all route)
 	webFS, webErr := web.FS()
 	if webErr != nil {
 		logger.Warn("web UI not available", "error", webErr)
@@ -205,16 +223,6 @@ func buildApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*se
 	return srv, cleanup, nil
 }
 
-func registerPlugins(reg *plugin.Registry, store storage.Storage, logger *slog.Logger) {
-	_ = reg.Register(docker.New(store, logger))
-	_ = reg.Register(npm.New(store, logger))
-	_ = reg.Register(pypi.New(store, logger))
-	_ = reg.Register(gomod.New(store, logger))
-	_ = reg.Register(cargo.New(store, logger))
-	_ = reg.Register(maven.New(store, logger))
-	_ = reg.Register(nuget.New(store, logger))
-	_ = reg.Register(helm.New(store, logger))
-}
 
 func buildPluginConfigs(registries map[string]config.RegistryConfig) map[string]map[string]any {
 	configs := make(map[string]map[string]any, len(registries))

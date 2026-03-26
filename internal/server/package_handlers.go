@@ -11,6 +11,8 @@ import (
 	"github.com/KilimcininKorOglu/kantar/internal/audit"
 	"github.com/KilimcininKorOglu/kantar/internal/auth"
 	"github.com/KilimcininKorOglu/kantar/internal/database/sqlc"
+	syncp "github.com/KilimcininKorOglu/kantar/internal/sync"
+	"github.com/KilimcininKorOglu/kantar/pkg/registry"
 )
 
 type packageResponse struct {
@@ -175,6 +177,25 @@ func (s *Server) handleApprovePackage(w http.ResponseWriter, r *http.Request) {
 			Actor:     audit.Actor{Username: approvedBy, IP: r.RemoteAddr},
 			Result:    "success",
 		})
+	}
+
+	// Enqueue recursive dependency sync if engine is available
+	if s.deps.SyncEngine != nil {
+		pkg, pkgErr := s.deps.Queries.GetPackageByID(r.Context(), id)
+		if pkgErr == nil {
+			jobID, syncErr := s.deps.SyncEngine.Enqueue(r.Context(), &syncp.Job{
+				PackageID:   id,
+				PackageName: pkg.Name,
+				Ecosystem:   registry.EcosystemType(pkg.RegistryType),
+				ApprovedBy:  approvedBy,
+				Options:     syncp.SyncOptions{MaxDepth: 10},
+			})
+			if syncErr == nil {
+				writeJSON(w, http.StatusOK, map[string]any{"status": "approved", "syncJobId": jobID})
+				return
+			}
+			s.logger.Warn("failed to enqueue sync job", "error", syncErr)
+		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "approved"})

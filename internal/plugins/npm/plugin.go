@@ -65,11 +65,104 @@ func (p *Plugin) FetchPackage(_ context.Context, name, version string) (*registr
 	return nil, fmt.Errorf("not implemented: use upstream sync")
 }
 
-func (p *Plugin) FetchMetadata(_ context.Context, name string) (*registry.PackageMeta, error) {
-	return &registry.PackageMeta{
-		Name:     name,
-		Registry: registry.EcosystemNPM,
-	}, nil
+func (p *Plugin) FetchMetadata(ctx context.Context, name string) (*registry.PackageMeta, error) {
+	packument, err := p.fetchPackument(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	meta := &registry.PackageMeta{
+		Name:        packument.Name,
+		Description: packument.Description,
+		Registry:    registry.EcosystemNPM,
+	}
+
+	for ver := range packument.Versions {
+		meta.Versions = append(meta.Versions, registry.VersionInfo{
+			Version: ver,
+		})
+	}
+
+	return meta, nil
+}
+
+// fetchPackument fetches the full packument from the upstream npm registry.
+func (p *Plugin) fetchPackument(ctx context.Context, name string) (*Packument, error) {
+	p.mu.RLock()
+	upstream := p.config.Upstream
+	p.mu.RUnlock()
+
+	if upstream == "" {
+		upstream = "https://registry.npmjs.org"
+	}
+
+	url := fmt.Sprintf("%s/%s", upstream, name)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request for %s: %w", name, err)
+	}
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching packument for %s: %w", name, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("upstream returned %d for %s", resp.StatusCode, name)
+	}
+
+	var packument Packument
+	if err := json.NewDecoder(resp.Body).Decode(&packument); err != nil {
+		return nil, fmt.Errorf("decoding packument for %s: %w", name, err)
+	}
+
+	return &packument, nil
+}
+
+// ResolveDependencies fetches the packument for name, resolves versionRange
+// to a concrete version, and returns the runtime dependencies of that version.
+func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {
+	packument, err := p.fetchPackument(ctx, name)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Collect all version strings
+	candidates := make([]string, 0, len(packument.Versions))
+	for ver := range packument.Versions {
+		candidates = append(candidates, ver)
+	}
+
+	// Resolve "latest" via dist-tags
+	if versionRange == "latest" || versionRange == "" {
+		if latest, ok := packument.DistTags["latest"]; ok {
+			versionRange = latest
+		}
+	}
+
+	// Import selectBestVersion from sync package would create circular dep.
+	// Instead, find the best matching version inline.
+	resolvedVersion := findBestVersion(candidates, versionRange)
+	if resolvedVersion == "" {
+		return nil, "", fmt.Errorf("no version of %s matches %s", name, versionRange)
+	}
+
+	vDoc, ok := packument.Versions[resolvedVersion]
+	if !ok {
+		return nil, "", fmt.Errorf("version %s not found in packument for %s", resolvedVersion, name)
+	}
+
+	var deps []registry.Dependency
+	for depName, depRange := range vDoc.Dependencies {
+		deps = append(deps, registry.Dependency{
+			Name:         depName,
+			VersionRange: depRange,
+		})
+	}
+
+	return deps, resolvedVersion, nil
 }
 
 func (p *Plugin) ServePackage(w http.ResponseWriter, r *http.Request) {

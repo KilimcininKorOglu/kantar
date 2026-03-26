@@ -321,3 +321,37 @@ func (q *Queries) UpdatePackageStatus(ctx context.Context, arg UpdatePackageStat
 	)
 	return err
 }
+
+const upsertPackage = `-- name: UpsertPackage :one
+INSERT INTO packages (registry_type, name, status, requested_by)
+VALUES ($1, $2, 'pending', $3)
+ON CONFLICT (registry_type, name) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+RETURNING id, registry_type, name, description, license, homepage, repository, status, requested_by, approved_by, blocked_reason, created_at, updated_at
+`
+
+type UpsertPackageParams struct {
+	RegistryType string
+	Name         string
+	RequestedBy  string
+}
+
+func (q *Queries) UpsertPackage(ctx context.Context, arg UpsertPackageParams) (Package, error) {
+	row := q.db.QueryRowContext(ctx, upsertPackage, arg.RegistryType, arg.Name, arg.RequestedBy)
+	var i Package
+	err := row.Scan(
+		&i.ID,
+		&i.RegistryType,
+		&i.Name,
+		&i.Description,
+		&i.License,
+		&i.Homepage,
+		&i.Repository,
+		&i.Status,
+		&i.RequestedBy,
+		&i.ApprovedBy,
+		&i.BlockedReason,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

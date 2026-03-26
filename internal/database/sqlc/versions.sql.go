@@ -150,3 +150,35 @@ func (q *Queries) ListPackageVersions(ctx context.Context, arg ListPackageVersio
 	}
 	return items, nil
 }
+
+const upsertPackageVersion = `-- name: UpsertPackageVersion :one
+INSERT INTO package_versions (package_id, version, size, checksum_sha256, checksum_sha1, storage_path, metadata_json, synced_at)
+VALUES ($1, $2, 0, '', '', '', '{}', CURRENT_TIMESTAMP)
+ON CONFLICT (package_id, version) DO UPDATE SET synced_at = CURRENT_TIMESTAMP
+RETURNING id, package_id, version, size, checksum_sha256, checksum_sha1, storage_path, deprecated, yanked, metadata_json, synced_at, created_at
+`
+
+type UpsertPackageVersionParams struct {
+	PackageID int64
+	Version   string
+}
+
+func (q *Queries) UpsertPackageVersion(ctx context.Context, arg UpsertPackageVersionParams) (PackageVersion, error) {
+	row := q.db.QueryRowContext(ctx, upsertPackageVersion, arg.PackageID, arg.Version)
+	var i PackageVersion
+	err := row.Scan(
+		&i.ID,
+		&i.PackageID,
+		&i.Version,
+		&i.Size,
+		&i.ChecksumSha256,
+		&i.ChecksumSha1,
+		&i.StoragePath,
+		&i.Deprecated,
+		&i.Yanked,
+		&i.MetadataJson,
+		&i.SyncedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
