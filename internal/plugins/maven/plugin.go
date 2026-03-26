@@ -3,6 +3,7 @@ package maven
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"log/slog"
@@ -10,6 +11,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/KilimcininKorOglu/kantar/internal/storage"
 	"github.com/KilimcininKorOglu/kantar/pkg/registry"
@@ -75,6 +77,94 @@ func (p *Plugin) FetchMetadata(_ context.Context, name string) (*registry.Packag
 		Registry: registry.EcosystemMaven,
 	}, nil
 }
+
+var mavenHTTPClient = &http.Client{Timeout: 30 * time.Second}
+
+type pomProject struct {
+	XMLName      xml.Name        `xml:"project"`
+	Dependencies pomDependencies `xml:"dependencies"`
+}
+
+type pomDependencies struct {
+	Dependency []pomDependency `xml:"dependency"`
+}
+
+type pomDependency struct {
+	GroupID    string `xml:"groupId"`
+	ArtifactID string `xml:"artifactId"`
+	Version    string `xml:"version"`
+	Scope      string `xml:"scope"`
+	Optional   string `xml:"optional"`
+}
+
+// ResolveDependencies fetches the POM from upstream and parses <dependencies>.
+// Maven name format: "groupId:artifactId" (e.g., "org.springframework:spring-core")
+func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {
+	p.mu.RLock()
+	upstream := p.config.Upstream
+	p.mu.RUnlock()
+	if upstream == "" {
+		upstream = "https://repo1.maven.org/maven2"
+	}
+
+	parts := strings.SplitN(name, ":", 2)
+	if len(parts) != 2 {
+		return nil, "", fmt.Errorf("invalid Maven coordinate: %s (expected groupId:artifactId)", name)
+	}
+	groupID, artifactID := parts[0], parts[1]
+	groupPath := strings.ReplaceAll(groupID, ".", "/")
+
+	version := versionRange
+	if version == "" || version == "*" || version == "latest" {
+		return nil, "", fmt.Errorf("Maven requires explicit version for %s", name)
+	}
+
+	// Fetch POM
+	url := fmt.Sprintf("%s/%s/%s/%s/%s-%s.pom", upstream, groupPath, artifactID, version, artifactID, version)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, "", err
+	}
+
+	resp, err := mavenHTTPClient.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("fetching POM for %s:%s: %w", name, version, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("upstream returned %d for %s POM", resp.StatusCode, name)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", err
+	}
+
+	var pom pomProject
+	if err := xml.Unmarshal(data, &pom); err != nil {
+		return nil, "", fmt.Errorf("parsing POM XML for %s: %w", name, err)
+	}
+
+	var deps []registry.Dependency
+	for _, d := range pom.Dependencies.Dependency {
+		// Skip test and provided scope
+		if d.Scope == "test" || d.Scope == "provided" || d.Scope == "system" {
+			continue
+		}
+		optional := d.Optional == "true"
+		deps = append(deps, registry.Dependency{
+			Name:         d.GroupID + ":" + d.ArtifactID,
+			VersionRange: d.Version,
+			Optional:     optional,
+		})
+	}
+
+	return deps, version, nil
+}
+
+// Ensure unused imports don't cause errors
+var _ = path.Join
 
 func (p *Plugin) ServePackage(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)

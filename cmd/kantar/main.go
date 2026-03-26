@@ -178,23 +178,36 @@ func buildApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*se
 	// 8. Plugin Registry
 	pluginReg := plugin.NewRegistry(logger)
 	npmPlugin := npm.New(store, logger)
+	pypiPlugin := pypi.New(store, logger)
+	gomodPlugin := gomod.New(store, logger)
+	cargoPlugin := cargo.New(store, logger)
+	mavenPlugin := maven.New(store, logger)
+	nugetPlugin := nuget.New(store, logger)
+	helmPlugin := helm.New(store, logger)
+
 	_ = pluginReg.Register(docker.New(store, logger))
 	_ = pluginReg.Register(npmPlugin)
-	_ = pluginReg.Register(pypi.New(store, logger))
-	_ = pluginReg.Register(gomod.New(store, logger))
-	_ = pluginReg.Register(cargo.New(store, logger))
-	_ = pluginReg.Register(maven.New(store, logger))
-	_ = pluginReg.Register(nuget.New(store, logger))
-	_ = pluginReg.Register(helm.New(store, logger))
+	_ = pluginReg.Register(pypiPlugin)
+	_ = pluginReg.Register(gomodPlugin)
+	_ = pluginReg.Register(cargoPlugin)
+	_ = pluginReg.Register(mavenPlugin)
+	_ = pluginReg.Register(nugetPlugin)
+	_ = pluginReg.Register(helmPlugin)
 
 	pluginConfigs := buildPluginConfigs(cfg.Registries)
 	if err := pluginReg.ConfigureAll(pluginConfigs); err != nil {
 		logger.Warn("plugin configuration error", "error", err)
 	}
 
-	// 9. Sync Engine
+	// 9. Sync Engine — register dependency resolvers for all supported ecosystems
 	syncEngine := syncp.NewEngine(rawDB, auditLog, logger)
 	syncEngine.RegisterResolver(registry.EcosystemNPM, npmPlugin)
+	syncEngine.RegisterResolver(registry.EcosystemPyPI, pypiPlugin)
+	syncEngine.RegisterResolver(registry.EcosystemGoMod, gomodPlugin)
+	syncEngine.RegisterResolver(registry.EcosystemCargo, cargoPlugin)
+	syncEngine.RegisterResolver(registry.EcosystemMaven, mavenPlugin)
+	syncEngine.RegisterResolver(registry.EcosystemNuGet, nugetPlugin)
+	syncEngine.RegisterResolver(registry.EcosystemHelm, helmPlugin)
 	syncEngine.Start(ctx, 3)
 	logger.Info("sync engine started", "workers", 3)
 

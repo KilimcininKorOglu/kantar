@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -84,11 +85,124 @@ func (p *Plugin) FetchPackage(_ context.Context, _, _ string) (*registry.Package
 	return nil, fmt.Errorf("not implemented: use upstream sync")
 }
 
-func (p *Plugin) FetchMetadata(_ context.Context, name string) (*registry.PackageMeta, error) {
-	return &registry.PackageMeta{
-		Name:     name,
-		Registry: registry.EcosystemPyPI,
-	}, nil
+func (p *Plugin) FetchMetadata(ctx context.Context, name string) (*registry.PackageMeta, error) {
+	pypiResp, err := p.fetchPyPIJSON(ctx, name, "")
+	if err != nil {
+		return &registry.PackageMeta{Name: name, Registry: registry.EcosystemPyPI}, nil
+	}
+	meta := &registry.PackageMeta{
+		Name:        pypiResp.Info.Name,
+		Description: pypiResp.Info.Summary,
+		Registry:    registry.EcosystemPyPI,
+	}
+	for ver := range pypiResp.Releases {
+		meta.Versions = append(meta.Versions, registry.VersionInfo{Version: ver})
+	}
+	return meta, nil
+}
+
+var pypiHTTPClient = &http.Client{Timeout: 30 * time.Second}
+
+type pypiJSONResponse struct {
+	Info struct {
+		Name         string   `json:"name"`
+		Version      string   `json:"version"`
+		Summary      string   `json:"summary"`
+		RequiresDist []string `json:"requires_dist"`
+	} `json:"info"`
+	Releases map[string]json.RawMessage `json:"releases"`
+}
+
+func (p *Plugin) fetchPyPIJSON(ctx context.Context, name, version string) (*pypiJSONResponse, error) {
+	p.mu.RLock()
+	upstream := p.config.Upstream
+	p.mu.RUnlock()
+	if upstream == "" {
+		upstream = "https://pypi.org"
+	}
+
+	var url string
+	if version != "" {
+		url = fmt.Sprintf("%s/pypi/%s/%s/json", upstream, name, version)
+	} else {
+		url = fmt.Sprintf("%s/pypi/%s/json", upstream, name)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := pypiHTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching PyPI JSON for %s: %w", name, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("PyPI returned %d for %s", resp.StatusCode, name)
+	}
+
+	var result pypiJSONResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ResolveDependencies fetches package metadata from PyPI and extracts requires_dist.
+func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {
+	version := versionRange
+	if version == "" || version == "*" || version == "latest" {
+		version = ""
+	}
+
+	pypiResp, err := p.fetchPyPIJSON(ctx, name, version)
+	if err != nil {
+		return nil, "", err
+	}
+
+	resolvedVersion := pypiResp.Info.Version
+
+	var deps []registry.Dependency
+	for _, req := range pypiResp.Info.RequiresDist {
+		depName, depRange := parsePEP508(req)
+		if depName == "" {
+			continue
+		}
+		deps = append(deps, registry.Dependency{
+			Name:         depName,
+			VersionRange: depRange,
+		})
+	}
+
+	return deps, resolvedVersion, nil
+}
+
+// parsePEP508 parses a PEP 508 requirement string like "requests>=2.0" or "urllib3; python_version>='3.8'"
+func parsePEP508(req string) (name, versionRange string) {
+	// Strip environment markers (after ";")
+	if idx := strings.IndexByte(req, ';'); idx >= 0 {
+		req = req[:idx]
+	}
+	req = strings.TrimSpace(req)
+
+	// Strip extras (e.g., "package[extra]>=1.0")
+	if idx := strings.IndexByte(req, '['); idx >= 0 {
+		end := strings.IndexByte(req, ']')
+		if end > idx {
+			req = req[:idx] + req[end+1:]
+		}
+	}
+
+	// Split name from version spec
+	for i, c := range req {
+		if c == '>' || c == '<' || c == '=' || c == '!' || c == '~' {
+			return strings.TrimSpace(req[:i]), strings.TrimSpace(req[i:])
+		}
+	}
+
+	return strings.TrimSpace(req), "*"
 }
 
 func (p *Plugin) ServePackage(w http.ResponseWriter, r *http.Request) {

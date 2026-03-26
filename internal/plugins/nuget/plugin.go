@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/KilimcininKorOglu/kantar/internal/storage"
 	"github.com/KilimcininKorOglu/kantar/pkg/registry"
@@ -72,6 +73,81 @@ func (p *Plugin) FetchMetadata(_ context.Context, name string) (*registry.Packag
 		Name:     name,
 		Registry: registry.EcosystemNuGet,
 	}, nil
+}
+
+var nugetHTTPClient = &http.Client{Timeout: 30 * time.Second}
+
+type nugetRegistrationResponse struct {
+	CatalogEntry struct {
+		ID               string                `json:"id"`
+		Version          string                `json:"version"`
+		DependencyGroups []nugetDependencyGroup `json:"dependencyGroups"`
+	} `json:"catalogEntry"`
+}
+
+type nugetDependencyGroup struct {
+	TargetFramework string            `json:"targetFramework"`
+	Dependencies    []nugetDependency `json:"dependencies"`
+}
+
+type nugetDependency struct {
+	ID    string `json:"id"`
+	Range string `json:"range"`
+}
+
+// ResolveDependencies fetches package metadata from the NuGet registration API.
+func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {
+	version := versionRange
+	if version == "" || version == "*" || version == "latest" {
+		return nil, "", fmt.Errorf("NuGet requires explicit version for %s", name)
+	}
+
+	// NuGet registration API
+	url := fmt.Sprintf("https://api.nuget.org/v3/registration5-gz-semver2/%s/%s.json",
+		strings.ToLower(name), strings.ToLower(version))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, "", err
+	}
+
+	resp, err := nugetHTTPClient.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("fetching NuGet registration for %s@%s: %w", name, version, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("NuGet returned %d for %s@%s", resp.StatusCode, name, version)
+	}
+
+	var regResp nugetRegistrationResponse
+	if err := json.NewDecoder(resp.Body).Decode(&regResp); err != nil {
+		return nil, "", err
+	}
+
+	resolvedVersion := regResp.CatalogEntry.Version
+	if resolvedVersion == "" {
+		resolvedVersion = version
+	}
+
+	// Collect deps from all target framework groups
+	seen := make(map[string]bool)
+	var deps []registry.Dependency
+	for _, group := range regResp.CatalogEntry.DependencyGroups {
+		for _, d := range group.Dependencies {
+			if seen[strings.ToLower(d.ID)] {
+				continue
+			}
+			seen[strings.ToLower(d.ID)] = true
+			deps = append(deps, registry.Dependency{
+				Name:         d.ID,
+				VersionRange: d.Range,
+			})
+		}
+	}
+
+	return deps, resolvedVersion, nil
 }
 
 func (p *Plugin) ServePackage(w http.ResponseWriter, r *http.Request) {

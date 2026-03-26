@@ -81,6 +81,116 @@ func (p *Plugin) FetchMetadata(_ context.Context, name string) (*registry.Packag
 	}, nil
 }
 
+var gomodHTTPClient = &http.Client{Timeout: 30 * time.Second}
+
+// ResolveDependencies fetches the go.mod file from upstream and parses require directives.
+func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {
+	p.mu.RLock()
+	upstream := p.config.Upstream
+	p.mu.RUnlock()
+	if upstream == "" {
+		upstream = "https://proxy.golang.org"
+	}
+
+	version := versionRange
+	if version == "" || version == "*" || version == "latest" {
+		// Fetch latest version from list
+		url := fmt.Sprintf("%s/%s/@v/list", upstream, name)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, "", err
+		}
+		resp, err := gomodHTTPClient.Do(req)
+		if err != nil {
+			return nil, "", err
+		}
+		defer resp.Body.Close()
+		data, _ := io.ReadAll(resp.Body)
+		lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+		if len(lines) == 0 || lines[0] == "" {
+			return nil, "", fmt.Errorf("no versions found for %s", name)
+		}
+		version = lines[len(lines)-1] // Last line is latest
+	}
+
+	// Fetch go.mod
+	url := fmt.Sprintf("%s/%s/@v/%s.mod", upstream, name, version)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, "", err
+	}
+
+	resp, err := gomodHTTPClient.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("fetching go.mod for %s@%s: %w", name, version, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("upstream returned %d for %s@%s.mod", resp.StatusCode, name, version)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", err
+	}
+
+	deps := parseGoMod(string(data))
+	return deps, version, nil
+}
+
+// parseGoMod extracts require directives from a go.mod file content.
+func parseGoMod(content string) []registry.Dependency {
+	var deps []registry.Dependency
+	inRequireBlock := false
+
+	for _, line := range strings.Split(content, "\n") {
+		line = strings.TrimSpace(line)
+
+		if line == "require (" {
+			inRequireBlock = true
+			continue
+		}
+		if line == ")" && inRequireBlock {
+			inRequireBlock = false
+			continue
+		}
+
+		// Single-line require
+		if strings.HasPrefix(line, "require ") && !inRequireBlock {
+			parts := strings.Fields(line[8:])
+			if len(parts) >= 2 {
+				deps = append(deps, registry.Dependency{
+					Name:         parts[0],
+					VersionRange: parts[1],
+				})
+			}
+			continue
+		}
+
+		if inRequireBlock {
+			// Skip comments and indirect markers
+			if strings.HasPrefix(line, "//") || line == "" {
+				continue
+			}
+			parts := strings.Fields(line)
+			if len(parts) >= 2 {
+				dep := registry.Dependency{
+					Name:         parts[0],
+					VersionRange: parts[1],
+				}
+				// Mark indirect deps
+				if strings.Contains(line, "// indirect") {
+					dep.Optional = true
+				}
+				deps = append(deps, dep)
+			}
+		}
+	}
+
+	return deps
+}
+
 func (p *Plugin) ServePackage(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }

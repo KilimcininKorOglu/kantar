@@ -126,6 +126,89 @@ func (p *Plugin) FetchMetadata(_ context.Context, name string) (*registry.Packag
 	}, nil
 }
 
+var cargoHTTPClient = &http.Client{Timeout: 30 * time.Second}
+
+// ResolveDependencies fetches the crate index from upstream and returns dependencies
+// for the best matching version.
+func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {
+	p.mu.RLock()
+	upstream := p.config.Upstream
+	p.mu.RUnlock()
+
+	if upstream == "" {
+		upstream = "https://crates.io"
+	}
+
+	// Fetch sparse index from crates.io
+	prefix := computePrefix(strings.ToLower(name))
+	url := fmt.Sprintf("https://index.crates.io/%s%s", prefix, strings.ToLower(name))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := cargoHTTPClient.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("fetching crate index for %s: %w", name, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("upstream returned %d for crate %s", resp.StatusCode, name)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Parse JSON lines
+	var entries []indexEntry
+	for _, line := range bytes.Split(data, []byte("\n")) {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		var entry indexEntry
+		if json.Unmarshal(line, &entry) == nil && !entry.Yanked {
+			entries = append(entries, entry)
+		}
+	}
+
+	if len(entries) == 0 {
+		return nil, "", fmt.Errorf("no versions found for crate %s", name)
+	}
+
+	// Pick best version — use last entry (highest version in Cargo index order)
+	// For exact version, find it directly
+	selected := entries[len(entries)-1]
+	if versionRange != "" && versionRange != "*" && versionRange != "latest" {
+		for _, e := range entries {
+			if e.Vers == versionRange {
+				selected = e
+				break
+			}
+		}
+	}
+
+	var deps []registry.Dependency
+	for _, d := range selected.Deps {
+		kind := d.Kind
+		if kind == "" {
+			kind = "normal"
+		}
+		deps = append(deps, registry.Dependency{
+			Name:         d.Name,
+			VersionRange: d.Req,
+			Optional:     d.Optional,
+			Dev:          kind == "dev",
+		})
+	}
+
+	return deps, selected.Vers, nil
+}
+
 func (p *Plugin) ServePackage(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }

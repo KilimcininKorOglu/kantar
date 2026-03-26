@@ -8,9 +8,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"archive/tar"
+	"compress/gzip"
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -88,6 +91,117 @@ func (p *Plugin) FetchMetadata(_ context.Context, name string) (*registry.Packag
 		Name:     name,
 		Registry: registry.EcosystemHelm,
 	}, nil
+}
+
+// ResolveDependencies opens the stored chart .tgz and parses dependencies from Chart.yaml.
+func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {
+	version := versionRange
+	if version == "" || version == "*" || version == "latest" {
+		// Try to find latest version from stored metadata
+		return nil, "", fmt.Errorf("Helm requires explicit version for %s", name)
+	}
+
+	// Read chart .tgz from storage
+	chartPath := fmt.Sprintf("helm/charts/%s/%s-%s.tgz", name, name, version)
+	reader, err := p.storage.Get(ctx, chartPath)
+	if err != nil {
+		return nil, "", fmt.Errorf("chart not found: %s@%s", name, version)
+	}
+	defer reader.Close()
+
+	chartYAML, err := extractChartYAML(reader, name)
+	if err != nil {
+		return nil, "", fmt.Errorf("reading Chart.yaml from %s@%s: %w", name, version, err)
+	}
+
+	deps := parseChartDependencies(chartYAML)
+	return deps, version, nil
+}
+
+// extractChartYAML opens a .tgz and finds {chartName}/Chart.yaml
+func extractChartYAML(r io.Reader, chartName string) (string, error) {
+	gzr, err := gzip.NewReader(r)
+	if err != nil {
+		return "", err
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+		// Match {chartName}/Chart.yaml or Chart.yaml
+		if hdr.Name == chartName+"/Chart.yaml" || hdr.Name == "Chart.yaml" {
+			data, err := io.ReadAll(tr)
+			if err != nil {
+				return "", err
+			}
+			return string(data), nil
+		}
+	}
+	return "", fmt.Errorf("Chart.yaml not found in archive")
+}
+
+// parseChartDependencies extracts dependencies from Chart.yaml content
+// using simple line-based parsing (avoids YAML library dependency).
+func parseChartDependencies(content string) []registry.Dependency {
+	var deps []registry.Dependency
+	lines := strings.Split(content, "\n")
+	inDeps := false
+	var currentDep registry.Dependency
+	hasDep := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Detect dependencies: block
+		if trimmed == "dependencies:" {
+			inDeps = true
+			continue
+		}
+
+		// Exit dependencies block on next top-level key
+		if inDeps && len(line) > 0 && line[0] != ' ' && line[0] != '-' {
+			if hasDep {
+				deps = append(deps, currentDep)
+				hasDep = false
+			}
+			break
+		}
+
+		if !inDeps {
+			continue
+		}
+
+		// New dependency entry
+		if strings.HasPrefix(trimmed, "- name:") {
+			if hasDep {
+				deps = append(deps, currentDep)
+			}
+			currentDep = registry.Dependency{
+				Name: strings.TrimSpace(strings.TrimPrefix(trimmed, "- name:")),
+			}
+			hasDep = true
+			continue
+		}
+
+		if hasDep {
+			if strings.HasPrefix(trimmed, "version:") {
+				currentDep.VersionRange = strings.Trim(strings.TrimSpace(strings.TrimPrefix(trimmed, "version:")), "\"'")
+			}
+		}
+	}
+
+	if hasDep {
+		deps = append(deps, currentDep)
+	}
+
+	return deps
 }
 
 func (p *Plugin) ServePackage(w http.ResponseWriter, r *http.Request) {
