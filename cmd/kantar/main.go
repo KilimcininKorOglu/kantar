@@ -138,6 +138,11 @@ func buildApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*se
 	// 2. Default admin user (first run)
 	ensureDefaultAdmin(ctx, queries, logger)
 
+	// 2b. Seed runtime settings from config
+	seedSettings(ctx, queries, cfg, logger)
+	seedRegistries(ctx, queries, cfg, logger)
+	seedPolicies(ctx, queries, logger)
+
 	// 3. JWT Manager
 	secret := cfg.Auth.JWTSecret
 	if secret == "" {
@@ -334,6 +339,122 @@ func newInitCmd() *cobra.Command {
 	cmd.Flags().String("dir", ".", "Directory to create config files in")
 	cmd.Flags().Bool("force", false, "Overwrite existing files")
 	return cmd
+}
+
+func seedSettings(ctx context.Context, queries *sqlc.Queries, cfg *config.Config, logger *slog.Logger) {
+	defaults := []struct {
+		key, value, category, description string
+	}{
+		{"log.level", cfg.Logging.Level, "logging", "Log level (debug, info, warn, error)"},
+		{"log.format", cfg.Logging.Format, "logging", "Log format (json, text)"},
+		{"log.audit_enabled", fmt.Sprintf("%t", cfg.Logging.AuditEnabled), "logging", "Enable audit logging"},
+		{"log.audit_retention", cfg.Logging.AuditRetention.Duration.String(), "logging", "Audit log retention period"},
+		{"cache.enabled", fmt.Sprintf("%t", cfg.Cache.Enabled), "cache", "Enable caching"},
+		{"cache.max_size", cfg.Cache.MaxSize, "cache", "Maximum cache size"},
+		{"cache.ttl", cfg.Cache.TTL.Duration.String(), "cache", "Cache TTL"},
+		{"auth.session_ttl", cfg.Auth.SessionTTL.Duration.String(), "auth", "Session token TTL"},
+		{"auth.token_ttl", cfg.Auth.TokenTTL.Duration.String(), "auth", "API token TTL"},
+		{"notifications.enabled", fmt.Sprintf("%t", cfg.Notifications.Enabled), "notifications", "Enable notifications"},
+	}
+
+	for _, d := range defaults {
+		// Only seed if key doesn't exist yet (don't overwrite admin changes)
+		_, err := queries.GetSetting(ctx, d.key)
+		if err != nil {
+			queries.UpsertSetting(ctx, sqlc.UpsertSettingParams{
+				Key:         d.key,
+				Value:       d.value,
+				Category:    d.category,
+				Description: d.description,
+			})
+		}
+	}
+	logger.Info("settings seeded")
+}
+
+func seedRegistries(ctx context.Context, queries *sqlc.Queries, cfg *config.Config, logger *slog.Logger) {
+	ecosystems := map[string]struct {
+		upstream string
+		mode     string
+		enabled  bool
+	}{
+		"docker": {"https://registry-1.docker.io", "allowlist", true},
+		"npm":    {"https://registry.npmjs.org", "allowlist", true},
+		"pypi":   {"https://pypi.org", "allowlist", true},
+		"gomod":  {"https://proxy.golang.org", "allowlist", true},
+		"cargo":  {"https://crates.io", "allowlist", true},
+		"maven":  {"https://repo1.maven.org/maven2", "allowlist", true},
+		"nuget":  {"https://api.nuget.org/v3", "allowlist", true},
+		"helm":   {"", "allowlist", true},
+	}
+
+	// Override from config
+	for eco, rc := range cfg.Registries {
+		if e, ok := ecosystems[eco]; ok {
+			if rc.Upstream != "" {
+				e.upstream = rc.Upstream
+			}
+			if rc.Mode != "" {
+				e.mode = rc.Mode
+			}
+			e.enabled = rc.Enabled
+			ecosystems[eco] = e
+		}
+	}
+
+	for eco, e := range ecosystems {
+		// Only seed if doesn't exist
+		_, err := queries.GetRegistry(ctx, eco)
+		if err != nil {
+			enabledInt := int64(0)
+			if e.enabled {
+				enabledInt = 1
+			}
+			queries.UpsertRegistry(ctx, sqlc.UpsertRegistryParams{
+				Ecosystem:        eco,
+				Mode:             e.mode,
+				Upstream:         e.upstream,
+				AutoSync:         0,
+				AutoSyncInterval: "6h",
+				MaxVersions:      0,
+				Enabled:          enabledInt,
+				ConfigJson:       "{}",
+			})
+		}
+	}
+	logger.Info("registries seeded")
+}
+
+func seedPolicies(ctx context.Context, queries *sqlc.Queries, logger *slog.Logger) {
+	defaults := []struct {
+		name, policyType, configToml string
+	}{
+		{"license", "license", `allowed = ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC"]
+blocked = ["GPL-3.0", "AGPL-3.0"]
+action = "block"`},
+		{"vulnerability", "vulnerability", `block_severity = ["critical", "high"]
+warn_severity = ["medium"]
+allow_severity = ["low"]`},
+		{"age", "age", `min_package_age = "7d"`},
+		{"size", "size", `max_package_size = "500MB"`},
+		{"version", "version", `allow_prerelease = false
+allow_deprecated = false`},
+		{"naming", "naming", `blocked_scopes = []
+blocked_prefixes = []`},
+	}
+
+	for _, d := range defaults {
+		_, err := queries.GetPolicy(ctx, d.name)
+		if err != nil {
+			queries.UpsertPolicy(ctx, sqlc.UpsertPolicyParams{
+				Name:       d.name,
+				PolicyType: d.policyType,
+				ConfigToml: d.configToml,
+				Enabled:    1,
+			})
+		}
+	}
+	logger.Info("policies seeded")
 }
 
 func parseLogLevel(level string) slog.Level {

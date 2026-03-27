@@ -2,14 +2,37 @@ import { useState, useEffect } from 'react'
 import { api } from '../api/client'
 import type { SystemStatus } from '../api/types'
 
+interface Setting {
+  key: string
+  value: string
+  category: string
+  description: string
+  updatedAt: string
+}
+
 export default function Settings() {
   const [status, setStatus] = useState<SystemStatus | null>(null)
+  const [settings, setSettings] = useState<Setting[]>([])
+  const [editingKey, setEditingKey] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    api.get<SystemStatus>('/system/status')
-      .then(setStatus)
-      .catch(() => {})
+    api.get<SystemStatus>('/system/status').then(setStatus).catch(() => {})
+    api.get<Setting[]>('/settings').then(setSettings).catch(() => {})
   }, [])
+
+  const categories = [...new Set(settings.map(s => s.category))]
+
+  const handleSave = async (key: string) => {
+    setSaving(true)
+    try {
+      await api.put(`/settings/${key}`, { value: editValue })
+      setSettings(prev => prev.map(s => s.key === key ? { ...s, value: editValue } : s))
+      setEditingKey(null)
+    } catch { /* ignore */ }
+    setSaving(false)
+  }
 
   return (
     <div className="space-y-6">
@@ -30,29 +53,52 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Configuration */}
-      <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-slate-400 mb-4">Configuration</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <InfoRow label="Database" value="PostgreSQL" />
-          <InfoRow label="Storage" value="Filesystem" />
-          <InfoRow label="Cache" value="In-Memory" />
-          <InfoRow label="Auth" value="Local" />
+      {/* Dynamic Settings by Category */}
+      {categories.map(cat => (
+        <div key={cat} className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-slate-400 mb-4 capitalize">{cat}</h3>
+          <div className="space-y-2">
+            {settings.filter(s => s.category === cat).map(s => (
+              <div key={s.key} className="flex items-center justify-between py-2 border-b border-slate-800/50 last:border-0">
+                <div className="flex-1">
+                  <div className="text-sm text-white">{s.key}</div>
+                  {s.description && <div className="text-xs text-slate-500">{s.description}</div>}
+                </div>
+                <div className="flex items-center gap-2">
+                  {editingKey === s.key ? (
+                    <>
+                      <input
+                        value={editValue}
+                        onChange={e => setEditValue(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleSave(s.key)}
+                        className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-white w-48 focus:outline-none focus:border-blue-500"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => handleSave(s.key)}
+                        disabled={saving}
+                        className="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded cursor-pointer"
+                      >Save</button>
+                      <button
+                        onClick={() => setEditingKey(null)}
+                        className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded cursor-pointer"
+                      >Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm text-slate-300 font-mono">{s.value}</span>
+                      <button
+                        onClick={() => { setEditingKey(s.key); setEditValue(s.value) }}
+                        className="px-2 py-1 text-blue-400 hover:text-blue-300 text-xs cursor-pointer"
+                      >Edit</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* System Actions */}
-      <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-slate-400 mb-4">Actions</h3>
-        <div className="flex gap-3">
-          <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm rounded transition-colors cursor-pointer">
-            Garbage Collection
-          </button>
-          <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm rounded transition-colors cursor-pointer">
-            Create Backup
-          </button>
-        </div>
-      </div>
+      ))}
     </div>
   )
 }

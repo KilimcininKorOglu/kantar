@@ -169,6 +169,41 @@ func (s *Server) setupAPIRoutes(r chi.Router) {
 			r.Get("/verify", s.handleVerifyAuditChain)
 		})
 
+		// Settings — registry_admin+ to read, super_admin to write
+		r.Route("/settings", func(r chi.Router) {
+			r.Use(auth.RequireRole(auth.RoleRegistryAdmin))
+			r.Get("/", s.handleListSettings)
+			r.Get("/{key}", s.handleGetSetting)
+			r.Group(func(r chi.Router) {
+				r.Use(auth.RequireRole(auth.RoleSuperAdmin))
+				r.Put("/", s.handleBulkUpdateSettings)
+				r.Put("/{key}", s.handleUpdateSetting)
+			})
+		})
+
+		// Registries — consumer+ to read, super_admin to write
+		r.Route("/registries", func(r chi.Router) {
+			r.Use(auth.RequireRole(auth.RoleConsumer))
+			r.Get("/", s.handleListRegistries)
+			r.Get("/{ecosystem}", s.handleGetRegistry)
+			r.Group(func(r chi.Router) {
+				r.Use(auth.RequireRole(auth.RoleSuperAdmin))
+				r.Put("/{ecosystem}", s.handleUpdateRegistry)
+			})
+		})
+
+		// Policies — consumer+ to read, super_admin to write
+		r.Route("/policies", func(r chi.Router) {
+			r.Use(auth.RequireRole(auth.RoleConsumer))
+			r.Get("/", s.handleListPolicies)
+			r.Get("/{name}", s.handleGetPolicy)
+			r.Group(func(r chi.Router) {
+				r.Use(auth.RequireRole(auth.RoleSuperAdmin))
+				r.Put("/{name}", s.handleUpdatePolicy)
+				r.Put("/{name}/toggle", s.handleTogglePolicy)
+			})
+		})
+
 		// Sync jobs — registry_admin+
 		r.Route("/sync/jobs", func(r chi.Router) {
 			r.Use(auth.RequireRole(auth.RoleRegistryAdmin))

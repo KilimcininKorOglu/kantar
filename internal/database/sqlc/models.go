@@ -105,6 +105,14 @@ type SchemaMigration struct {
 	AppliedAt time.Time
 }
 
+type Setting struct {
+	Key         string
+	Value       string
+	Category    string
+	Description string
+	UpdatedAt   time.Time
+}
+
 type SyncJob struct {
 	ID             int64
 	RegistryType   string
