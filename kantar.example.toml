@@ -1,4 +1,6 @@
-# Kantar Configuration — Docker Compose Environment
+# Kantar Configuration — Bootstrap Only
+# Runtime settings (logging, cache, registries, policies) are managed via
+# the database and Web UI after first startup.
 
 [server]
 host = "0.0.0.0"
@@ -22,33 +24,3 @@ ssl_mode = "disable"
 
 [auth]
 type = "local"
-session_ttl = "24h"
-token_ttl = "90d"
-
-[cache]
-enabled = true
-type = "memory"
-max_size = "2GB"
-ttl = "1h"
-
-[logging]
-level = "info"
-format = "json"
-audit_enabled = true
-audit_path = "/var/lib/kantar/logs/audit.log"
-audit_retention = "365d"
-
-[registry.npm]
-mode = "allowlist"
-upstream = "https://registry.npmjs.org"
-enabled = true
-
-[registry.docker]
-mode = "allowlist"
-upstream = "https://registry-1.docker.io"
-enabled = true
-
-[registry.pypi]
-mode = "allowlist"
-upstream = "https://pypi.org"
-enabled = true
