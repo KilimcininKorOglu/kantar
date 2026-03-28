@@ -48,6 +48,7 @@ export interface User {
   email: string
   role: string
   active: boolean
+  timezone: string
   createdAt: string
   updatedAt: string
 }

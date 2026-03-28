@@ -89,6 +89,7 @@ type userResponse struct {
 	Email     string    `json:"email,omitempty"`
 	Role      string    `json:"role"`
 	Active    bool      `json:"active"`
+	Timezone  string    `json:"timezone"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
@@ -98,6 +99,7 @@ func toUserResponse(u sqlc.User) userResponse {
 		Username:  u.Username,
 		Role:      u.Role,
 		Active:    u.Active == 1,
+		Timezone:  u.Timezone,
 		CreatedAt: u.CreatedAt,
 	}
 	if u.Email.Valid {

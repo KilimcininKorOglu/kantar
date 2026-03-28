@@ -13,8 +13,12 @@ VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: UpdateUser :exec
-UPDATE users SET email = $1, role = $2, active = $3, updated_at = CURRENT_TIMESTAMP
-WHERE id = $4;
+UPDATE users SET email = $1, role = $2, active = $3, timezone = $4, updated_at = CURRENT_TIMESTAMP
+WHERE id = $5;
+
+-- name: UpdateUserTimezone :exec
+UPDATE users SET timezone = $1, updated_at = CURRENT_TIMESTAMP
+WHERE id = $2;
 
 -- name: DeleteUser :exec
 DELETE FROM users WHERE id = $1;

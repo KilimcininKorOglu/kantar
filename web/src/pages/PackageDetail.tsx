@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router'
 import { api } from '../api/client'
 import type { Package } from '../api/types'
+import { formatDate } from '../utils/date'
 
 export default function PackageDetail() {
   const { registry, name } = useParams()
@@ -125,8 +126,8 @@ export default function PackageDetail() {
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
           <h3 className="text-sm font-medium text-slate-400 mb-3">Dates</h3>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-slate-500">Created</span><span className="text-white">{new Date(pkg.createdAt).toLocaleDateString()}</span></div>
-            <div className="flex justify-between"><span className="text-slate-500">Updated</span><span className="text-white">{new Date(pkg.updatedAt).toLocaleDateString()}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Created</span><span className="text-white">{formatDate(pkg.createdAt)}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Updated</span><span className="text-white">{formatDate(pkg.updatedAt)}</span></div>
           </div>
         </div>
       </div>

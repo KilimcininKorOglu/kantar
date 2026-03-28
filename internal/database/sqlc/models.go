@@ -134,6 +134,7 @@ type User struct {
 	Active       int64
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	Timezone     string
 }
 
 type UserRole struct {

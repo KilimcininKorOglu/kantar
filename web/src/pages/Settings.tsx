@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api/client'
 import type { SystemStatus } from '../api/types'
+import { useAuth } from '../hooks/useAuth'
+import { getTimezone, setTimezone as setTz, getTimezoneList } from '../utils/date'
 
 interface Setting {
   key: string
@@ -11,16 +13,28 @@ interface Setting {
 }
 
 export default function Settings() {
+  const { user } = useAuth()
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [settings, setSettings] = useState<Setting[]>([])
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
+  const [timezone, setTimezone] = useState(getTimezone())
 
   useEffect(() => {
     api.get<SystemStatus>('/system/status').then(setStatus).catch(() => {})
     api.get<Setting[]>('/settings').then(setSettings).catch(() => {})
   }, [])
+
+  const handleTimezoneChange = async (tz: string) => {
+    setTimezone(tz)
+    setTz(tz)
+    if (user) {
+      try {
+        await api.put(`/users/${user.id}`, { timezone: tz })
+      } catch { /* ignore */ }
+    }
+  }
 
   const categories = [...new Set(settings.map(s => s.category))]
 
@@ -50,6 +64,26 @@ export default function Settings() {
           <InfoRow label="Goroutines" value={String(status?.goroutines || '—')} />
           <InfoRow label="Memory (Alloc)" value={status ? `${(status.memory.allocBytes / 1048576).toFixed(1)} MB` : '—'} />
           <InfoRow label="Memory (Sys)" value={status ? `${(status.memory.sysBytes / 1048576).toFixed(1)} MB` : '—'} />
+        </div>
+      </div>
+
+      {/* Display Preferences */}
+      <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+        <h3 className="text-sm font-medium text-slate-400 mb-4">Display</h3>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm text-white">Timezone</div>
+            <div className="text-xs text-slate-500">All dates and times will be displayed in this timezone</div>
+          </div>
+          <select
+            value={timezone}
+            onChange={e => handleTimezoneChange(e.target.value)}
+            className="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-white w-64"
+          >
+            {getTimezoneList().map(tz => (
+              <option key={tz} value={tz}>{tz}</option>
+            ))}
+          </select>
         </div>
       </div>
 

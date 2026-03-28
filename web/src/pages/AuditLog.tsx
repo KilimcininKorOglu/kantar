@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api/client'
 import type { AuditLogEntry } from '../api/types'
+import { formatDateTime } from '../utils/date'
 
 export default function AuditLog() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([])
@@ -123,7 +124,7 @@ export default function AuditLog() {
               filteredLogs.map((l) => (
                 <tr key={l.id} className="border-b border-slate-800/50">
                   <td className="px-4 py-3 text-slate-400 text-xs">
-                    {new Date(l.timestamp).toLocaleString()}
+                    {formatDateTime(l.timestamp)}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 text-xs rounded ${

@@ -62,9 +62,10 @@ func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateUserRequest struct {
-	Email  string `json:"email"`
-	Role   string `json:"role"`
-	Active *bool  `json:"active"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+	Active   *bool  `json:"active"`
+	Timezone string `json:"timezone"`
 }
 
 func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -110,11 +111,17 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	timezone := existing.Timezone
+	if req.Timezone != "" {
+		timezone = req.Timezone
+	}
+
 	if err := s.deps.Queries.UpdateUser(r.Context(), sqlc.UpdateUserParams{
-		Email:  email,
-		Role:   role,
-		Active: active,
-		ID:     id,
+		Email:    email,
+		Role:     role,
+		Active:   active,
+		Timezone: timezone,
+		ID:       id,
 	}); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update user")
 		return

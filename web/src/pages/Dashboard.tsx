@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api/client'
 import type { SystemStatus, AuditLogEntry } from '../api/types'
+import { formatDateTime } from '../utils/date'
 
 const ecosystems = [
   { name: 'Docker', key: 'docker' },
@@ -105,7 +106,7 @@ export default function Dashboard() {
                     }`}>{a.event}</span>
                     <span className="text-white">{a.actorUsername}</span>
                   </div>
-                  <span className="text-slate-500 text-xs">{new Date(a.timestamp).toLocaleString()}</span>
+                  <span className="text-slate-500 text-xs">{formatDateTime(a.timestamp)}</span>
                 </div>
               ))}
             </div>
