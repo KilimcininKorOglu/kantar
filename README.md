@@ -10,10 +10,13 @@ Kantar proxies, mirrors, approves, and serves packages from multiple ecosystems 
 
 - **8 Package Ecosystems** -- Docker, npm, PyPI, Go Modules, Cargo, Maven, NuGet, Helm
 - **Allowlist / Mirror Modes** -- explicit approval (default) or pull-through with blocklist
+- **Recursive Dependency Sync** -- approve a package and its entire dependency tree is auto-fetched
 - **Policy Engine** -- declarative rules for license, vulnerability severity, package age, size, and naming
 - **RBAC** -- 5 roles: Super Admin, Registry Admin, Publisher, Consumer, Viewer
 - **Audit Trail** -- hash-chain tamper-evident logging
-- **Web Dashboard** -- embedded React SPA with user management, package approval, audit viewer
+- **Web Dashboard** -- embedded React SPA with settings, registry, policy, and user management
+- **Runtime Configuration** -- manage settings, registries, and policies via Web UI without restart
+- **Per-User Timezone** -- each user selects their timezone, all dates displayed accordingly
 - **CLI Tool** -- `kantarctl` for scripting and automation
 - **Single Binary** -- Go binary with embedded web UI, no separate frontend deployment
 
@@ -82,18 +85,31 @@ make build-all
   +-------v-------------------v-------+
   |        Core Engine                |
   |  Package Manager | Policy Engine  |
-  |  Audit Logger    | Cache Layer    |
+  |  Audit Logger    | Sync Engine   |
   +-------+---------------------------+
           |
   +-------v-------+  +---------------+
   | PostgreSQL    |  | Filesystem    |
-  | (database)    |  | (storage)     |
+  | (database +   |  | (storage)     |
+  |  settings)    |  |               |
   +---------------+  +---------------+
 ```
 
 ### Plugin System
 
-Each ecosystem is a compile-time Go plugin implementing the `RegistryPlugin` interface. Plugins serve native protocol endpoints (Docker Registry API v2, npm registry API, PyPI Simple API, etc.) under `/{ecosystem}/` routes.
+Each ecosystem is a compile-time Go plugin implementing the `RegistryPlugin` interface. Plugins serve native protocol endpoints under `/{ecosystem}/` routes and implement `ResolveDependencies` for recursive sync.
+
+### Recursive Dependency Sync
+
+When a package is approved, Kantar automatically resolves and approves its entire dependency tree:
+
+1. Admin approves `express` on npm
+2. Sync engine fetches the packument from `registry.npmjs.org`
+3. Semver resolver picks the best matching version for each dependency
+4. BFS traversal processes all transitive dependencies (max depth 10)
+5. Each dependency is auto-approved and recorded in the database
+
+Supported ecosystems: npm, PyPI, Go Modules, Cargo, Maven, NuGet, Helm. Docker is excluded (no dependency concept).
 
 ### Operation Modes
 
@@ -104,12 +120,20 @@ Each ecosystem is a compile-time Go plugin implementing the `RegistryPlugin` int
 
 ## Configuration
 
-Kantar uses TOML configuration with environment variable interpolation:
+Kantar uses a two-tier configuration model:
+
+- **`kantar.toml`** -- bootstrap settings (server, storage, database, auth type)
+- **Database** -- runtime settings managed via Web UI (logging, cache, registries, policies)
 
 ```toml
+# kantar.toml — Bootstrap Only
 [server]
 host = "0.0.0.0"
 port = 8080
+
+[storage]
+type = "filesystem"
+path = "/var/lib/kantar/data"
 
 [database]
 type = "postgres"
@@ -120,35 +144,39 @@ port = 5432
 name = "kantar"
 user = "kantar"
 password = "${KANTAR_DB_PASSWORD}"
+ssl_mode = "disable"
 
-[registry.npm]
-mode = "allowlist"
-upstream = "https://registry.npmjs.org"
-enabled = true
-
-[registry.docker]
-mode = "allowlist"
-upstream = "https://registry-1.docker.io"
-enabled = true
+[auth]
+type = "local"
 ```
+
+Runtime settings (log level, cache TTL, session TTL, registry modes, policy rules) are seeded from defaults on first run and managed via the Settings, Registries, and Policies pages in the Web UI.
 
 ## API
 
 ### Management API (`/api/v1`)
 
-| Method | Endpoint                             | Auth         | Description              |
-|--------|--------------------------------------|--------------|--------------------------|
-| POST   | `/auth/login`                        | Public       | Get JWT token            |
-| POST   | `/auth/register`                     | Public       | Create user              |
-| GET    | `/system/status`                     | Any role     | Runtime info             |
-| GET    | `/users`                             | Super Admin  | List users               |
-| PUT    | `/users/{id}`                        | Super Admin  | Update user              |
-| DELETE | `/users/{id}`                        | Super Admin  | Delete user              |
-| GET    | `/packages?registry=npm&status=pending` | Consumer+ | List packages         |
-| POST   | `/packages/{id}/approve`             | Reg. Admin+  | Approve package          |
-| POST   | `/packages/{id}/block`               | Reg. Admin+  | Block package            |
-| GET    | `/audit`                             | Reg. Admin+  | Audit log entries        |
-| GET    | `/audit/verify`                      | Reg. Admin+  | Verify hash chain        |
+| Method | Endpoint                                | Auth         | Description                |
+|--------|-----------------------------------------|--------------|----------------------------|
+| POST   | `/auth/login`                           | Public       | Get JWT token              |
+| POST   | `/auth/register`                        | Public       | Create user                |
+| GET    | `/system/status`                        | Any role     | Runtime info               |
+| GET    | `/users`                                | Super Admin  | List users                 |
+| PUT    | `/users/{id}`                           | Super Admin  | Update user (inc. timezone)|
+| DELETE | `/users/{id}`                           | Super Admin  | Delete user                |
+| GET    | `/packages?registry=npm&status=pending` | Consumer+    | List packages              |
+| POST   | `/packages/{id}/approve`                | Reg. Admin+  | Approve + trigger dep sync |
+| POST   | `/packages/{id}/block`                  | Reg. Admin+  | Block package              |
+| GET    | `/audit`                                | Reg. Admin+  | Audit log entries          |
+| GET    | `/audit/verify`                         | Reg. Admin+  | Verify hash chain          |
+| GET    | `/settings`                             | Reg. Admin+  | List runtime settings      |
+| PUT    | `/settings/{key}`                       | Super Admin  | Update a setting           |
+| GET    | `/registries`                           | Consumer+    | List registries            |
+| PUT    | `/registries/{ecosystem}`               | Super Admin  | Update registry config     |
+| GET    | `/policies`                             | Consumer+    | List policies              |
+| PUT    | `/policies/{name}`                      | Super Admin  | Update policy              |
+| PUT    | `/policies/{name}/toggle`               | Super Admin  | Enable/disable policy      |
+| GET    | `/sync/jobs/{id}`                       | Reg. Admin+  | Sync job status            |
 
 ### Native Protocol Endpoints
 
@@ -189,10 +217,11 @@ internal/audit/      Hash-chain audit logging
 internal/policy/     Policy engine (license, size, age, version)
 internal/plugin/     Plugin registry and route mounting
 internal/plugins/    8 ecosystem plugin implementations
+internal/sync/       Recursive dependency sync engine
 internal/config/     TOML config loader with env interpolation
 pkg/registry/        Public RegistryPlugin interface
 web/                 React 19 + Vite 6 + Tailwind 4 SPA
-migrations/          Embedded PostgreSQL schema
+migrations/          Embedded PostgreSQL migrations (4 files)
 deploy/helm/         Kubernetes Helm chart
 ```
 
