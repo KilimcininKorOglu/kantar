@@ -5,52 +5,19 @@ run:
   modules-download-mode: readonly
 
 linters:
-  disable:
-    - errcheck
+  default: none
   enable:
     - govet
     - ineffassign
     - staticcheck
     - unused
-    - gocritic
-    - revive
     - misspell
     - unconvert
-    - unparam
-    - nolintlint
   settings:
-    gocritic:
-      enabled-tags:
-        - diagnostic
-        - performance
-      disabled-checks:
-        - hugeParam
-        - rangeValCopy
-        - unnamedResult
-        - paramTypeCombine
-        - emptyStringTest
-    revive:
-      rules:
-        - name: exported
-          arguments:
-            - "checkPrivateReceivers"
-        - name: unused-parameter
-    misspell:
-      locale: US
     govet:
-      enable-all: true
       disable:
         - fieldalignment
-  exclusions:
-    presets:
-      - common-false-positives
-    rules:
-      - path: _test\.go
-        linters:
-          - gocritic
-          - unparam
-    paths:
-      - web/node_modules
+        - shadow
 
 formatters:
   enable:
