@@ -29,6 +29,7 @@ Kantar proxies, mirrors, approves, and serves packages from multiple ecosystems 
 ```bash
 git clone https://github.com/KilimcininKorOglu/kantar.git
 cd kantar
+cp .env.example .env    # edit .env to set DB_PASSWORD
 make docker-up
 ```
 

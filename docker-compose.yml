@@ -7,7 +7,7 @@ services:
       - ./docker-data/kantar:/var/lib/kantar
       - ./docker-data/kantar.toml:/etc/kantar/kantar.toml:ro
     environment:
-      - KANTAR_DB_PASSWORD=${DB_PASSWORD:-kantar}
+      - KANTAR_DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set in .env}
     depends_on:
       postgres:
         condition: service_healthy
@@ -26,7 +26,7 @@ services:
     environment:
       - POSTGRES_DB=kantar
       - POSTGRES_USER=kantar
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-kantar}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set in .env}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kantar"]
       interval: 10s

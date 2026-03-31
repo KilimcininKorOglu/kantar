@@ -33,8 +33,9 @@ web/dist/
 *.db
 *.db-journal
 
-# Config with secrets (use kantar.toml.example instead)
+# Config with secrets
 kantar.toml
+.env
 policies/
 
 # Logs
