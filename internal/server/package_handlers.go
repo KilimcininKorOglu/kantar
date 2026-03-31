@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -113,7 +114,7 @@ func (s *Server) handleGetPackageByName(w http.ResponseWriter, r *http.Request) 
 	}
 
 	registry := chi.URLParam(r, "registry")
-	name := chi.URLParam(r, "name")
+	name, _ := url.PathUnescape(chi.URLParam(r, "name"))
 
 	pkg, err := s.deps.Queries.GetPackage(r.Context(), sqlc.GetPackageParams{
 		RegistryType: registry,

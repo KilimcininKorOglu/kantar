@@ -64,13 +64,13 @@ export default function PackageList() {
             ) : packages.map((pkg) => (
               <tr key={pkg.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-2.5">
-                  <Link to={`/packages/${pkg.registryType}/${pkg.name}`} className="text-xs text-accent hover:underline font-medium">{pkg.name}</Link>
+                  <Link to={`/packages/${pkg.registryType}/${encodeURIComponent(pkg.name)}`} className="text-xs text-accent hover:underline font-medium">{pkg.name}</Link>
                 </td>
                 <td className="px-4 py-2.5"><StatusBadge status={pkg.status} /></td>
                 <td className="px-4 py-2.5 text-xs text-text-muted font-mono">{pkg.license || '—'}</td>
                 <td className="px-4 py-2.5 text-xs text-text-muted">{pkg.requestedBy || '—'}</td>
                 <td className="px-4 py-2.5 text-right">
-                  <Link to={`/packages/${pkg.registryType}/${pkg.name}`} className="text-[11px] text-text-dim hover:text-accent">{t('common.view')}</Link>
+                  <Link to={`/packages/${pkg.registryType}/${encodeURIComponent(pkg.name)}`} className="text-[11px] text-text-dim hover:text-accent">{t('common.view')}</Link>
                 </td>
               </tr>
             ))}

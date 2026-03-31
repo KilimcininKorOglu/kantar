@@ -16,7 +16,7 @@ export default function PackageDetail() {
 
   const loadPackage = () => {
     setLoading(true)
-    api.get<Package>(`/packages/by-name/${registry}/${name}`)
+    api.get<Package>(`/packages/by-name/${registry}/${encodeURIComponent(name!)}`)
       .then(setPkg).catch(() => setError(t('packageDetail.packageNotFound'))).finally(() => setLoading(false))
   }
 
