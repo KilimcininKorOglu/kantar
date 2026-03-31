@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router'
 import { api } from '../api/client'
 import type { Package } from '../api/types'
 import { formatDate } from '../utils/date'
+import { ArrowLeft, Check, Ban } from 'lucide-react'
 
 export default function PackageDetail() {
   const { registry, name } = useParams()
@@ -14,9 +15,7 @@ export default function PackageDetail() {
   const loadPackage = () => {
     setLoading(true)
     api.get<Package>(`/packages/by-name/${registry}/${name}`)
-      .then(setPkg)
-      .catch(() => setError('Package not found'))
-      .finally(() => setLoading(false))
+      .then(setPkg).catch(() => setError('Package not found')).finally(() => setLoading(false))
   }
 
   useEffect(() => { loadPackage() }, [registry, name])
@@ -24,14 +23,9 @@ export default function PackageDetail() {
   const handleApprove = async () => {
     if (!pkg) return
     setActionLoading(true)
-    try {
-      await api.post(`/packages/${pkg.id}/approve`)
-      loadPackage()
-    } catch {
-      setError('Failed to approve')
-    } finally {
-      setActionLoading(false)
-    }
+    try { await api.post(`/packages/${pkg.id}/approve`); loadPackage() }
+    catch { setError('Failed to approve') }
+    setActionLoading(false)
   }
 
   const handleBlock = async () => {
@@ -39,105 +33,83 @@ export default function PackageDetail() {
     const reason = prompt('Block reason:')
     if (!reason) return
     setActionLoading(true)
-    try {
-      await api.post(`/packages/${pkg.id}/block`, { reason })
-      loadPackage()
-    } catch {
-      setError('Failed to block')
-    } finally {
-      setActionLoading(false)
-    }
+    try { await api.post(`/packages/${pkg.id}/block`, { reason }); loadPackage() }
+    catch { setError('Failed to block') }
+    setActionLoading(false)
   }
 
-  if (loading) {
-    return <div className="text-slate-500 py-12 text-center">Loading...</div>
-  }
-
-  if (!pkg) {
-    return (
-      <div className="space-y-4">
-        <Link to="/packages" className="text-blue-400 hover:text-blue-300 text-sm">&larr; Back to packages</Link>
-        <div className="text-slate-500 py-12 text-center">{error || 'Package not found'}</div>
-      </div>
-    )
-  }
-
-  const statusBadge = (status: string) => {
-    const cls = status === 'approved' ? 'bg-emerald-900/40 text-emerald-300'
-      : status === 'blocked' ? 'bg-red-900/40 text-red-300'
-      : 'bg-yellow-900/40 text-yellow-300'
-    return <span className={`px-2 py-0.5 text-xs rounded ${cls}`}>{status}</span>
-  }
+  if (loading) return <div className="text-text-dim py-12 text-center text-xs">Loading...</div>
+  if (!pkg) return (
+    <div className="space-y-4">
+      <Link to="/packages" className="flex items-center gap-1 text-accent text-xs"><ArrowLeft className="w-3 h-3" /> Back</Link>
+      <div className="text-text-dim py-12 text-center text-xs">{error || 'Package not found'}</div>
+    </div>
+  )
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <Link to="/packages" className="text-blue-400 hover:text-blue-300 text-xs">&larr; Back</Link>
-          <div className="text-xs text-slate-500 mt-2">{pkg.registryType}</div>
-          <h2 className="text-xl font-semibold text-white">{pkg.name}</h2>
-          <div className="mt-1">{statusBadge(pkg.status)}</div>
+          <Link to="/packages" className="flex items-center gap-1 text-accent text-xs mb-2"><ArrowLeft className="w-3 h-3" /> Back</Link>
+          <p className="text-[11px] text-text-dim uppercase tracking-wider font-mono">{pkg.registryType}</p>
+          <h2 className="text-lg font-bold text-text">{pkg.name}</h2>
+          <span className={`text-[11px] font-medium ${pkg.status === 'approved' ? 'text-success' : pkg.status === 'blocked' ? 'text-danger' : 'text-warning'}`}>{pkg.status}</span>
         </div>
         <div className="flex gap-2">
           {pkg.status !== 'approved' && (
-            <button
-              onClick={handleApprove}
-              disabled={actionLoading}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm rounded transition-colors cursor-pointer"
-            >Approve</button>
+            <button onClick={handleApprove} disabled={actionLoading} className="flex items-center gap-1.5 px-3 py-1.5 bg-success/20 text-success text-xs font-medium rounded cursor-pointer disabled:opacity-50">
+              <Check className="w-3.5 h-3.5" /> Approve
+            </button>
           )}
           {pkg.status !== 'blocked' && (
-            <button
-              onClick={handleBlock}
-              disabled={actionLoading}
-              className="px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm rounded transition-colors cursor-pointer"
-            >Block</button>
+            <button onClick={handleBlock} disabled={actionLoading} className="flex items-center gap-1.5 px-3 py-1.5 bg-danger/20 text-danger text-xs font-medium rounded cursor-pointer disabled:opacity-50">
+              <Ban className="w-3.5 h-3.5" /> Block
+            </button>
           )}
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-900/30 border border-red-800 text-red-300 text-sm rounded px-3 py-2">{error}</div>
-      )}
+      {error && <div className="bg-danger/10 border border-danger/20 text-danger text-xs rounded px-3 py-2">{error}</div>}
 
-      {/* Info Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-slate-400 mb-3">Details</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-slate-500">License</span><span className="text-white">{pkg.license || '—'}</span></div>
-            <div className="flex justify-between"><span className="text-slate-500">Homepage</span><span className="text-white truncate ml-2">{pkg.homepage || '—'}</span></div>
-            <div className="flex justify-between"><span className="text-slate-500">Repository</span><span className="text-white truncate ml-2">{pkg.repository || '—'}</span></div>
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-slate-400 mb-3">Status</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-slate-500">Requested By</span><span className="text-white">{pkg.requestedBy || '—'}</span></div>
-            <div className="flex justify-between"><span className="text-slate-500">Approved By</span><span className="text-white">{pkg.approvedBy || '—'}</span></div>
-            {pkg.blockedReason && (
-              <div className="flex justify-between"><span className="text-slate-500">Block Reason</span><span className="text-red-300">{pkg.blockedReason}</span></div>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-slate-400 mb-3">Dates</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-slate-500">Created</span><span className="text-white">{formatDate(pkg.createdAt)}</span></div>
-            <div className="flex justify-between"><span className="text-slate-500">Updated</span><span className="text-white">{formatDate(pkg.updatedAt)}</span></div>
-          </div>
-        </div>
+        <InfoCard title="Details" items={[
+          ['License', pkg.license || '—'],
+          ['Homepage', pkg.homepage || '—'],
+          ['Repository', pkg.repository || '—'],
+        ]} />
+        <InfoCard title="Status" items={[
+          ['Requested By', pkg.requestedBy || '—'],
+          ['Approved By', pkg.approvedBy || '—'],
+          ...(pkg.blockedReason ? [['Block Reason', pkg.blockedReason] as [string, string]] : []),
+        ]} />
+        <InfoCard title="Dates" items={[
+          ['Created', formatDate(pkg.createdAt)],
+          ['Updated', formatDate(pkg.updatedAt)],
+        ]} />
       </div>
 
       {pkg.description && (
-        <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-slate-400 mb-2">Description</h3>
-          <p className="text-sm text-slate-300">{pkg.description}</p>
+        <div className="bg-surface border border-border rounded p-4">
+          <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-2">Description</h3>
+          <p className="text-xs text-text-muted">{pkg.description}</p>
         </div>
       )}
+    </div>
+  )
+}
+
+function InfoCard({ title, items }: { title: string; items: [string, string][] }) {
+  return (
+    <div className="bg-surface border border-border rounded p-4">
+      <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">{title}</h3>
+      <div className="space-y-2">
+        {items.map(([k, v]) => (
+          <div key={k} className="flex justify-between text-xs">
+            <span className="text-text-dim">{k}</span>
+            <span className="text-text font-mono truncate ml-2 max-w-[180px]">{v}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

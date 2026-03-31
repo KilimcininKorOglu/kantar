@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { api } from '../api/client'
 import type { User } from '../api/types'
+import { Plus, Pencil, Trash2, X } from 'lucide-react'
 
 export default function Users() {
   const [users, setUsers] = useState<User[]>([])
@@ -9,9 +10,7 @@ export default function Users() {
   const [error, setError] = useState('')
 
   const loadUsers = () => {
-    api.get<User[]>('/users')
-      .then(setUsers)
-      .catch(() => setError('Failed to load users'))
+    api.get<User[]>('/users').then(setUsers).catch(() => setError('Failed to load users'))
   }
 
   useEffect(() => { loadUsers() }, [])
@@ -21,97 +20,70 @@ export default function Users() {
     try {
       await api.delete(`/users/${id}`)
       loadUsers()
-    } catch {
-      setError('Failed to delete user')
-    }
+    } catch { setError('Failed to delete user') }
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Users</h2>
+        <div />
         <button
           onClick={() => { setShowCreate(true); setError('') }}
-          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-medium rounded cursor-pointer"
         >
-          Create User
+          <Plus className="w-3.5 h-3.5" /> Create User
         </button>
       </div>
 
-      {error && (
-        <div className="bg-red-900/30 border border-red-800 text-red-300 text-sm rounded px-3 py-2">
-          {error}
-        </div>
-      )}
+      {error && <div className="bg-danger/10 border border-danger/20 text-danger text-xs rounded px-3 py-2">{error}</div>}
 
-      {showCreate && (
-        <CreateUserForm
-          onClose={() => setShowCreate(false)}
-          onCreated={() => { setShowCreate(false); loadUsers() }}
-        />
-      )}
+      {showCreate && <CreateUserForm onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadUsers() }} />}
+      {editingUser && <EditUserForm user={editingUser} onClose={() => setEditingUser(null)} onUpdated={() => { setEditingUser(null); loadUsers() }} />}
 
-      {editingUser && (
-        <EditUserForm
-          user={editingUser}
-          onClose={() => setEditingUser(null)}
-          onUpdated={() => { setEditingUser(null); loadUsers() }}
-        />
-      )}
-
-      <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+      <div className="bg-surface border border-border rounded overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-800 text-slate-500">
-              <th className="text-left px-4 py-3 font-medium">Username</th>
-              <th className="text-left px-4 py-3 font-medium">Email</th>
-              <th className="text-left px-4 py-3 font-medium">Role</th>
-              <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="text-right px-4 py-3 font-medium">Actions</th>
+            <tr className="border-b border-border text-text-dim">
+              <th className="text-left px-4 py-2.5 text-xs font-medium">Username</th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium">Email</th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium">Role</th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium">Status</th>
+              <th className="text-right px-4 py-2.5 text-xs font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {users.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-slate-600">
-                  No users found
+              <tr><td colSpan={5} className="px-4 py-10 text-center text-text-dim text-xs">No users found</td></tr>
+            ) : users.map((u) => (
+              <tr key={u.id} className="border-b border-border last:border-0">
+                <td className="px-4 py-2.5 text-text font-medium text-xs">{u.username}</td>
+                <td className="px-4 py-2.5 text-text-muted text-xs font-mono">{u.email || '—'}</td>
+                <td className="px-4 py-2.5"><RoleBadge role={u.role} /></td>
+                <td className="px-4 py-2.5">
+                  <span className={`text-[11px] font-medium ${u.active ? 'text-success' : 'text-danger'}`}>
+                    {u.active ? 'active' : 'disabled'}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => setEditingUser(u)} className="text-text-dim hover:text-accent cursor-pointer"><Pencil className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => handleDelete(u.id)} className="text-text-dim hover:text-danger cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </div>
                 </td>
               </tr>
-            ) : (
-              users.map((u) => (
-                <tr key={u.id} className="border-b border-slate-800/50">
-                  <td className="px-4 py-3 text-white font-medium">{u.username}</td>
-                  <td className="px-4 py-3 text-slate-400">{u.email || '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 text-xs rounded ${
-                      u.role === 'super_admin' ? 'bg-purple-900/40 text-purple-300' :
-                      u.role === 'registry_admin' ? 'bg-blue-900/40 text-blue-300' :
-                      'bg-slate-800 text-slate-300'
-                    }`}>{u.role}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 text-xs rounded ${
-                      u.active ? 'bg-emerald-900/40 text-emerald-300' : 'bg-red-900/40 text-red-300'
-                    }`}>{u.active ? 'active' : 'disabled'}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right space-x-2">
-                    <button
-                      onClick={() => setEditingUser(u)}
-                      className="text-blue-400 hover:text-blue-300 text-xs cursor-pointer"
-                    >Edit</button>
-                    <button
-                      onClick={() => handleDelete(u.id)}
-                      className="text-red-400 hover:text-red-300 text-xs cursor-pointer"
-                    >Delete</button>
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>
     </div>
   )
+}
+
+function RoleBadge({ role }: { role: string }) {
+  const cls = role === 'super_admin' ? 'text-accent bg-accent/10' :
+    role === 'registry_admin' ? 'text-blue-300 bg-blue-400/10' :
+    'text-text-muted bg-surface-2'
+  return <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${cls}`}>{role}</span>
 }
 
 function CreateUserForm({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
@@ -123,58 +95,26 @@ function CreateUserForm({ onClose, onCreated }: { onClose: () => void; onCreated
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
       await api.post('/auth/register', { username, email, password })
       onCreated()
-    } catch {
-      setError('Failed to create user. Username may already exist.')
-    } finally {
-      setLoading(false)
-    }
+    } catch { setError('Failed to create user') }
+    setLoading(false)
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-      <h3 className="text-sm font-medium text-white mb-3">Create User</h3>
-      {error && <div className="bg-red-900/30 border border-red-800 text-red-300 text-sm rounded px-3 py-2 mb-3">{error}</div>}
+    <div className="bg-surface border border-border rounded p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-text">Create User</h3>
+        <button onClick={onClose} className="text-text-dim hover:text-text cursor-pointer"><X className="w-4 h-4" /></button>
+      </div>
+      {error && <div className="bg-danger/10 border border-danger/20 text-danger text-xs rounded px-3 py-2 mb-3">{error}</div>}
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <input
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
-          required
-        />
-        <input
-          placeholder="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
-        />
-        <input
-          placeholder="Password (min 8 chars)"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
-          required
-          minLength={8}
-        />
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-sm rounded transition-colors cursor-pointer"
-          >{loading ? 'Creating...' : 'Create'}</button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded transition-colors cursor-pointer"
-          >Cancel</button>
-        </div>
+        <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text focus:outline-none focus:border-accent" required />
+        <input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text focus:outline-none focus:border-accent" />
+        <input placeholder="Password (min 8)" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text focus:outline-none focus:border-accent" required minLength={8} />
+        <button type="submit" disabled={loading} className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-xs font-medium rounded py-1.5 cursor-pointer">{loading ? 'Creating...' : 'Create'}</button>
       </form>
     </div>
   )
@@ -189,62 +129,30 @@ function EditUserForm({ user, onClose, onUpdated }: { user: User; onClose: () =>
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
       await api.put(`/users/${user.id}`, { email, role, active })
       onUpdated()
-    } catch {
-      setError('Failed to update user')
-    } finally {
-      setLoading(false)
-    }
+    } catch { setError('Failed to update user') }
+    setLoading(false)
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-      <h3 className="text-sm font-medium text-white mb-3">Edit User: {user.username}</h3>
-      {error && <div className="bg-red-900/30 border border-red-800 text-red-300 text-sm rounded px-3 py-2 mb-3">{error}</div>}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <input
-          placeholder="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
-        />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-white"
-        >
-          <option value="viewer">viewer</option>
-          <option value="consumer">consumer</option>
-          <option value="publisher">publisher</option>
-          <option value="registry_admin">registry_admin</option>
-          <option value="super_admin">super_admin</option>
+    <div className="bg-surface border border-border rounded p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-text">Edit: {user.username}</h3>
+        <button onClick={onClose} className="text-text-dim hover:text-text cursor-pointer"><X className="w-4 h-4" /></button>
+      </div>
+      {error && <div className="bg-danger/10 border border-danger/20 text-danger text-xs rounded px-3 py-2 mb-3">{error}</div>}
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+        <input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text focus:outline-none focus:border-accent" />
+        <select value={role} onChange={(e) => setRole(e.target.value)} className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text">
+          {['viewer', 'consumer', 'publisher', 'registry_admin', 'super_admin'].map(r => <option key={r} value={r}>{r}</option>)}
         </select>
-        <label className="flex items-center gap-2 text-sm text-slate-300">
-          <input
-            type="checkbox"
-            checked={active}
-            onChange={(e) => setActive(e.target.checked)}
-            className="rounded"
-          />
-          Active
+        <label className="flex items-center gap-2 text-xs text-text-muted">
+          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="rounded" /> Active
         </label>
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-sm rounded transition-colors cursor-pointer"
-          >{loading ? 'Saving...' : 'Save'}</button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded transition-colors cursor-pointer"
-          >Cancel</button>
-        </div>
+        <button type="submit" disabled={loading} className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-xs font-medium rounded py-1.5 cursor-pointer">{loading ? 'Saving...' : 'Save'}</button>
       </form>
     </div>
   )

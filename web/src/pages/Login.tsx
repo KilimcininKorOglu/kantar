@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { useAuth } from '../hooks/useAuth'
+import { Scale, AlertCircle } from 'lucide-react'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -28,7 +29,7 @@ export default function Login() {
       }
 
       const data = await res.json()
-      login(data.token, data.user || { id: 1, username, email: '', role: 'super_admin', active: true, createdAt: '', updatedAt: '' })
+      login(data.token, data.user || { id: 1, username, email: '', role: 'super_admin', active: true, timezone: 'UTC', createdAt: '', updatedAt: '' })
       navigate('/')
     } catch {
       setError('Connection error. Is the server running?')
@@ -38,43 +39,45 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+    <div className="min-h-screen bg-bg flex items-center justify-center">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            <span className="text-blue-400">Kantar</span>
-          </h1>
-          <p className="text-slate-500 text-sm mt-2 italic">Tartilmis, olculmus, onaylanmis.</p>
+          <div className="flex items-center justify-center gap-2.5 mb-2">
+            <Scale className="w-7 h-7 text-accent" />
+            <h1 className="text-2xl font-bold text-text tracking-tight">Kantar</h1>
+          </div>
+          <p className="text-text-dim text-xs tracking-wide italic">Tartilmis, olculmus, onaylanmis.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-lg p-6 space-y-4">
           {error && (
-            <div className="bg-red-900/30 border border-red-800 text-red-300 text-sm rounded px-3 py-2">
+            <div className="flex items-center gap-2 bg-danger/10 border border-danger/20 text-danger text-sm rounded px-3 py-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="username" className="block text-sm text-slate-400 mb-1">Username</label>
+            <label htmlFor="username" className="block text-xs font-medium text-text-muted mb-1.5">Username</label>
             <input
               id="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
               required
               autoFocus
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm text-slate-400 mb-1">Password</label>
+            <label htmlFor="password" className="block text-xs font-medium text-text-muted mb-1.5">Password</label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
               required
             />
           </div>
@@ -82,7 +85,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-sm font-medium rounded py-2.5 transition-colors cursor-pointer"
+            className="w-full bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-medium rounded py-2.5 cursor-pointer"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
