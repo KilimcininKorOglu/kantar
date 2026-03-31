@@ -56,15 +56,10 @@ func ClaimsFromContext(ctx context.Context) *Claims {
 }
 
 func extractToken(r *http.Request) string {
-	// Bearer token from Authorization header
+	// Bearer token from Authorization header only
 	auth := r.Header.Get("Authorization")
 	if strings.HasPrefix(auth, "Bearer ") {
 		return strings.TrimPrefix(auth, "Bearer ")
-	}
-
-	// Fallback: query parameter (for WebSocket or special cases)
-	if token := r.URL.Query().Get("token"); token != "" {
-		return token
 	}
 
 	return ""
