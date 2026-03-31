@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/KilimcininKorOglu/kantar/internal/database/sqlc"
@@ -61,6 +62,7 @@ type Event struct {
 
 // Logger handles writing and querying audit logs.
 type Logger struct {
+	mu       sync.Mutex
 	queries  *sqlc.Queries
 	prevHash string
 }
@@ -84,6 +86,9 @@ func NewLogger(db *sql.DB) *Logger {
 
 // Log records an audit event.
 func (l *Logger) Log(ctx context.Context, event *Event) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	event.Timestamp = time.Now().UTC()
 	event.PrevHash = l.prevHash
 	event.Hash = computeHash(event)
