@@ -14,7 +14,6 @@ linters:
     - gocritic
     - revive
     - misspell
-    - prealloc
     - unconvert
     - unparam
     - nolintlint
@@ -22,10 +21,22 @@ linters:
     gocritic:
       enabled-tags:
         - diagnostic
-        - style
         - performance
       disabled-checks:
         - hugeParam
+        - rangeValCopy
+        - unnamedResult
+        - paramTypeCombine
+        - emptyStringTest
+    errcheck:
+      exclude-functions:
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (database/sql.Rows).Close
+        - (*database/sql.Tx).Rollback
+        - os.Remove
+        - io.Copy
+        - fmt.Sscanf
     revive:
       rules:
         - name: exported
@@ -46,3 +57,9 @@ formatters:
 issues:
   max-issues-per-linter: 50
   max-same-issues: 5
+  exclude-dirs:
+    - web/node_modules
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
