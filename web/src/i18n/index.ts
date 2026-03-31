@@ -30,6 +30,6 @@ export function getLocale(): string {
 
 export const supportedLocales = [
   { code: 'en', label: 'English' },
-  { code: 'tr', label: 'Turkce' },
+  { code: 'tr', label: 'Türkçe' },
   { code: 'de', label: 'Deutsch' },
 ]
