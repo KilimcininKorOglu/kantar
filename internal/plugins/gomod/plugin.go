@@ -9,6 +9,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -109,7 +111,10 @@ func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange str
 		if len(lines) == 0 || lines[0] == "" {
 			return nil, "", fmt.Errorf("no versions found for %s", name)
 		}
-		version = lines[len(lines)-1] // Last line is latest
+		sort.Slice(lines, func(i, j int) bool {
+			return compareGoVersion(lines[i], lines[j]) < 0
+		})
+		version = lines[len(lines)-1]
 	}
 
 	// Fetch go.mod
@@ -348,6 +353,9 @@ func (p *Plugin) handleLatest(w http.ResponseWriter, r *http.Request, modulePath
 		return
 	}
 
+	sort.Slice(lines, func(i, j int) bool {
+		return compareGoVersion(lines[i], lines[j]) < 0
+	})
 	latest := lines[len(lines)-1]
 
 	infoPath := fmt.Sprintf("gomod/modules/%s/%s/.info", encoded, latest)
@@ -448,4 +456,49 @@ func (p *Plugin) appendVersion(ctx context.Context, encodedModule, version strin
 	existing += version + "\n"
 
 	return p.storage.Put(ctx, path, bytesReader([]byte(existing)))
+}
+
+// compareGoVersion compares two Go module versions (vMAJOR.MINOR.PATCH format).
+// Returns -1, 0, or 1 like strings.Compare.
+func compareGoVersion(a, b string) int {
+	parseVer := func(v string) (major, minor, patch int) {
+		v = strings.TrimPrefix(v, "v")
+		if idx := strings.IndexByte(v, '-'); idx >= 0 {
+			v = v[:idx] // strip pre-release
+		}
+		parts := strings.SplitN(v, ".", 3)
+		if len(parts) >= 1 {
+			major, _ = strconv.Atoi(parts[0])
+		}
+		if len(parts) >= 2 {
+			minor, _ = strconv.Atoi(parts[1])
+		}
+		if len(parts) >= 3 {
+			patch, _ = strconv.Atoi(parts[2])
+		}
+		return
+	}
+
+	aMaj, aMin, aPat := parseVer(a)
+	bMaj, bMin, bPat := parseVer(b)
+
+	if aMaj != bMaj {
+		if aMaj < bMaj {
+			return -1
+		}
+		return 1
+	}
+	if aMin != bMin {
+		if aMin < bMin {
+			return -1
+		}
+		return 1
+	}
+	if aPat != bPat {
+		if aPat < bPat {
+			return -1
+		}
+		return 1
+	}
+	return strings.Compare(a, b) // tie-break on full string (pre-release etc.)
 }
