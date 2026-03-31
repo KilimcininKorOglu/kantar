@@ -33,3 +33,6 @@ DELETE FROM users WHERE id = $1;
 
 -- name: CountUsers :one
 SELECT COUNT(*) FROM users;
+
+-- name: CountUsersByRole :one
+SELECT COUNT(*) FROM users WHERE role = $1;

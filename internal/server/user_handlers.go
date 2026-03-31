@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/KilimcininKorOglu/kantar/internal/auth"
 	"github.com/KilimcininKorOglu/kantar/internal/database/sqlc"
 )
 
@@ -147,6 +148,27 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid user id")
 		return
+	}
+
+	// Prevent self-deletion
+	claims := auth.ClaimsFromContext(r.Context())
+	if claims != nil && claims.UserID == id {
+		writeError(w, http.StatusBadRequest, "cannot delete your own account")
+		return
+	}
+
+	// Prevent deleting the last super_admin
+	target, err := s.deps.Queries.GetUserByID(r.Context(), id)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "user not found")
+		return
+	}
+	if target.Role == string(auth.RoleSuperAdmin) {
+		count, err := s.deps.Queries.CountUsersByRole(r.Context(), string(auth.RoleSuperAdmin))
+		if err == nil && count <= 1 {
+			writeError(w, http.StatusConflict, "cannot delete the last super_admin")
+			return
+		}
 	}
 
 	if err := s.deps.Queries.DeleteUser(r.Context(), id); err != nil {
