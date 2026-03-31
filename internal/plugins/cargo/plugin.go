@@ -130,9 +130,18 @@ var cargoHTTPClient = &http.Client{Timeout: 30 * time.Second}
 // ResolveDependencies fetches the crate index from upstream and returns dependencies
 // for the best matching version.
 func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {
-	// Fetch sparse index from crates.io
+	p.mu.RLock()
+	upstream := p.config.Upstream
+	p.mu.RUnlock()
+
+	// Derive sparse index URL from configured upstream
+	indexBase := "https://index.crates.io"
+	if upstream != "" && upstream != "https://crates.io" {
+		indexBase = strings.TrimSuffix(upstream, "/")
+	}
+
 	prefix := computePrefix(strings.ToLower(name))
-	url := fmt.Sprintf("https://index.crates.io/%s%s", prefix, strings.ToLower(name))
+	url := fmt.Sprintf("%s/%s%s", indexBase, prefix, strings.ToLower(name))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, "", err
