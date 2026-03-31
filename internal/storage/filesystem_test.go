@@ -111,9 +111,21 @@ func TestFilesystemPathTraversal(t *testing.T) {
 	fs, _ := NewFilesystem(dir)
 	ctx := context.Background()
 
-	err := fs.Put(ctx, "../../../etc/passwd", bytes.NewReader([]byte("bad")))
-	if err == nil {
-		t.Error("expected error for path traversal")
+	// Relative traversal: ../../../etc/passwd is normalized to basePath/etc/passwd (safe)
+	err := fs.Put(ctx, "../../../etc/passwd", bytes.NewReader([]byte("safe")))
+	if err != nil {
+		t.Errorf("relative traversal should be normalized safely, got error: %v", err)
+	}
+	// Verify it was written inside basePath, not outside
+	rc, err := fs.Get(ctx, "etc/passwd")
+	if err != nil {
+		t.Errorf("normalized file should be readable: %v", err)
+	} else {
+		defer rc.Close()
+		content, _ := io.ReadAll(rc)
+		if string(content) != "safe" {
+			t.Errorf("expected 'safe', got %q", string(content))
+		}
 	}
 }
 

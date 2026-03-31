@@ -24,12 +24,13 @@ func NewFilesystem(basePath string) (*Filesystem, error) {
 }
 
 func (f *Filesystem) resolve(path string) (string, error) {
-	// Prevent path traversal
-	cleaned := filepath.Clean(path)
-	if strings.Contains(cleaned, "..") {
+	// Force relative by prepending "/" then cleaning, so absolute inputs become relative
+	full := filepath.Join(f.basePath, filepath.Clean("/"+path))
+	base := filepath.Clean(f.basePath)
+	if full != base && !strings.HasPrefix(full, base+string(filepath.Separator)) {
 		return "", fmt.Errorf("path traversal detected: %s", path)
 	}
-	return filepath.Join(f.basePath, cleaned), nil
+	return full, nil
 }
 
 func (f *Filesystem) Put(_ context.Context, path string, reader io.Reader) error {
