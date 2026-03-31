@@ -1,6 +1,7 @@
 package maven
 
 import (
+	"context"
 	"encoding/xml"
 	"io"
 	"log/slog"
@@ -343,7 +344,7 @@ func TestMavenPluginInterface(t *testing.T) {
 	}
 
 	// Validate
-	result, err := p.ValidatePackage(nil, nil)
+	result, err := p.ValidatePackage(context.TODO(), nil)
 	if err != nil {
 		t.Errorf("ValidatePackage returned error: %v", err)
 	}
@@ -352,7 +353,7 @@ func TestMavenPluginInterface(t *testing.T) {
 	}
 
 	// FetchMetadata
-	meta, err := p.FetchMetadata(nil, "com.example:mylib")
+	meta, err := p.FetchMetadata(context.TODO(), "com.example:mylib")
 	if err != nil {
 		t.Errorf("FetchMetadata returned error: %v", err)
 	}
@@ -456,7 +457,7 @@ func TestMavenSearch(t *testing.T) {
 	store, _ := storage.NewFilesystem(dir)
 	p := New(store, slog.Default())
 
-	results, err := p.Search(nil, "anything")
+	results, err := p.Search(context.TODO(), "anything")
 	if err != nil {
 		t.Errorf("Search returned error: %v", err)
 	}

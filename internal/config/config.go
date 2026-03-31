@@ -5,14 +5,14 @@ import "time"
 
 // Config is the root configuration structure for Kantar.
 type Config struct {
-	Server        ServerConfig                  `toml:"server"`
-	Storage       StorageConfig                 `toml:"storage"`
-	Database      DatabaseConfig                `toml:"database"`
-	Auth          AuthConfig                    `toml:"auth"`
-	Cache         CacheConfig                   `toml:"cache"`
-	Logging       LoggingConfig                 `toml:"logging"`
-	Notifications NotificationsConfig           `toml:"notifications"`
-	Registries    map[string]RegistryConfig      `toml:"registry"`
+	Server        ServerConfig              `toml:"server"`
+	Storage       StorageConfig             `toml:"storage"`
+	Database      DatabaseConfig            `toml:"database"`
+	Auth          AuthConfig                `toml:"auth"`
+	Cache         CacheConfig               `toml:"cache"`
+	Logging       LoggingConfig             `toml:"logging"`
+	Notifications NotificationsConfig       `toml:"notifications"`
+	Registries    map[string]RegistryConfig `toml:"registry"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -27,9 +27,9 @@ type ServerConfig struct {
 
 // StorageConfig holds package storage settings.
 type StorageConfig struct {
-	Type string        `toml:"type"`
-	Path string        `toml:"path"`
-	S3   S3Config      `toml:"s3"`
+	Type string   `toml:"type"`
+	Path string   `toml:"path"`
+	S3   S3Config `toml:"s3"`
 }
 
 // S3Config holds S3-compatible storage settings.
@@ -59,12 +59,12 @@ type PostgresConfig struct {
 
 // AuthConfig holds authentication settings.
 type AuthConfig struct {
-	Type       string        `toml:"type"`
-	SessionTTL Duration      `toml:"session_ttl"`
-	TokenTTL   Duration      `toml:"token_ttl"`
-	JWTSecret  string        `toml:"jwt_secret"`
-	LDAP       LDAPConfig    `toml:"ldap"`
-	OIDC       OIDCConfig    `toml:"oidc"`
+	Type       string     `toml:"type"`
+	SessionTTL Duration   `toml:"session_ttl"`
+	TokenTTL   Duration   `toml:"token_ttl"`
+	JWTSecret  string     `toml:"jwt_secret"`
+	LDAP       LDAPConfig `toml:"ldap"`
+	OIDC       OIDCConfig `toml:"oidc"`
 }
 
 // LDAPConfig holds LDAP authentication settings.
@@ -87,10 +87,10 @@ type OIDCConfig struct {
 
 // CacheConfig holds caching settings.
 type CacheConfig struct {
-	Enabled bool      `toml:"enabled"`
-	Type    string    `toml:"type"`
-	MaxSize string    `toml:"max_size"`
-	TTL     Duration  `toml:"ttl"`
+	Enabled bool        `toml:"enabled"`
+	Type    string      `toml:"type"`
+	MaxSize string      `toml:"max_size"`
+	TTL     Duration    `toml:"ttl"`
 	Redis   RedisConfig `toml:"redis"`
 }
 
@@ -112,9 +112,9 @@ type LoggingConfig struct {
 
 // NotificationsConfig holds notification settings.
 type NotificationsConfig struct {
-	Enabled bool            `toml:"enabled"`
-	Webhook WebhookConfig   `toml:"webhook"`
-	Email   EmailConfig     `toml:"email"`
+	Enabled bool          `toml:"enabled"`
+	Webhook WebhookConfig `toml:"webhook"`
+	Email   EmailConfig   `toml:"email"`
 }
 
 // WebhookConfig holds webhook notification settings.

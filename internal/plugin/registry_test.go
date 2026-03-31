@@ -20,9 +20,9 @@ type mockPlugin struct {
 	routes    []registry.Route
 }
 
-func (m *mockPlugin) Name() string                        { return m.name }
-func (m *mockPlugin) Version() string                     { return m.version }
-func (m *mockPlugin) Ecosystem() registry.EcosystemType   { return m.ecosystem }
+func (m *mockPlugin) Name() string                      { return m.name }
+func (m *mockPlugin) Version() string                   { return m.version }
+func (m *mockPlugin) Ecosystem() registry.EcosystemType { return m.ecosystem }
 func (m *mockPlugin) Search(_ context.Context, _ string) ([]registry.PackageMeta, error) {
 	return nil, nil
 }
@@ -40,9 +40,9 @@ func (m *mockPlugin) DeletePackage(_ context.Context, _, _ string) error { retur
 func (m *mockPlugin) ValidatePackage(_ context.Context, _ *registry.Package) (*registry.ValidationResult, error) {
 	return &registry.ValidationResult{Valid: true}, nil
 }
-func (m *mockPlugin) Configure(_ map[string]any) error         { return nil }
-func (m *mockPlugin) DefaultConfig() map[string]any            { return map[string]any{} }
-func (m *mockPlugin) Routes() []registry.Route                 { return m.routes }
+func (m *mockPlugin) Configure(_ map[string]any) error { return nil }
+func (m *mockPlugin) DefaultConfig() map[string]any    { return map[string]any{} }
+func (m *mockPlugin) Routes() []registry.Route         { return m.routes }
 
 func TestRegistryRegisterAndGet(t *testing.T) {
 	reg := NewRegistry(slog.Default())

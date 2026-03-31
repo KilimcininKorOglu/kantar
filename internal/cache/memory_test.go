@@ -113,8 +113,8 @@ func TestMemoryStats(t *testing.T) {
 	ctx := context.Background()
 
 	c.Set(ctx, "k", []byte("val"), 0)
-	c.Get(ctx, "k")     // hit
-	c.Get(ctx, "miss")  // miss
+	c.Get(ctx, "k")    // hit
+	c.Get(ctx, "miss") // miss
 
 	stats, _ := c.Stats(ctx)
 	if stats.Hits != 1 {

@@ -90,8 +90,8 @@ func InitConfig(dir string) ([]string, error) {
 	}
 
 	files := map[string]string{
-		"kantar.toml":             defaultConfigTemplate,
-		"policies/security.toml":  defaultPolicyTemplate,
+		"kantar.toml":            defaultConfigTemplate,
+		"policies/security.toml": defaultPolicyTemplate,
 	}
 
 	var created []string
@@ -124,8 +124,8 @@ func InitConfigForce(dir string) ([]string, error) {
 	}
 
 	files := map[string]string{
-		"kantar.toml":             defaultConfigTemplate,
-		"policies/security.toml":  defaultPolicyTemplate,
+		"kantar.toml":            defaultConfigTemplate,
+		"policies/security.toml": defaultPolicyTemplate,
 	}
 
 	var created []string
