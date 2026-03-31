@@ -133,9 +133,15 @@ func (s *Server) setupAPIRoutes(r chi.Router) {
 
 	// Authenticated endpoints
 	r.Group(func(r chi.Router) {
-		if s.deps.JWTManager != nil {
-			r.Use(auth.Middleware(s.deps.JWTManager))
-		}
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if s.deps.JWTManager == nil {
+					writeError(w, http.StatusServiceUnavailable, "authentication service not ready")
+					return
+				}
+				auth.Middleware(s.deps.JWTManager)(next).ServeHTTP(w, r)
+			})
+		})
 
 		r.Get("/system/status", s.handleSystemStatus)
 

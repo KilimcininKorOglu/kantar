@@ -39,26 +39,16 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
-func TestSystemStatus(t *testing.T) {
-	s := newTestServer()
+func TestSystemStatusRequiresAuth(t *testing.T) {
+	s := newTestServer() // Dependencies{} has nil JWTManager
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/status", nil)
 	w := httptest.NewRecorder()
 
 	s.router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-
-	var status systemStatus
-	if err := json.NewDecoder(w.Body).Decode(&status); err != nil {
-		t.Fatalf("decode error: %v", err)
-	}
-	if status.Status != "healthy" {
-		t.Errorf("expected healthy, got %s", status.Status)
-	}
-	if status.NumCPU == 0 {
-		t.Error("expected non-zero NumCPU")
+	// With nil JWTManager, authenticated routes should return 503
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("expected 503 when JWTManager is nil, got %d", w.Code)
 	}
 }
 
