@@ -46,7 +46,7 @@ export default function Login() {
             <Scale className="w-7 h-7 text-accent" />
             <h1 className="text-2xl font-bold text-text tracking-tight">Kantar</h1>
           </div>
-          <p className="text-text-dim text-xs tracking-wide italic">Tartilmis, olculmus, onaylanmis.</p>
+          <p className="text-text-dim text-xs tracking-wide italic">Weighed, measured, approved.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-lg p-6 space-y-4">
