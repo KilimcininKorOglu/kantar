@@ -4,7 +4,7 @@ Unified local package registry platform for enterprise environments.
 
 Kantar proxies, mirrors, approves, and serves packages from multiple ecosystems behind a corporate firewall. It replaces heavyweight solutions like JFrog Artifactory and Sonatype Nexus with a single lightweight Go binary.
 
-*Tartilmis, olculmus, onaylanmis.* (Weighed, measured, approved.)
+*Trust nothing. Approve everything.*
 
 ## Features
 
@@ -16,6 +16,7 @@ Kantar proxies, mirrors, approves, and serves packages from multiple ecosystems 
 - **Audit Trail** -- hash-chain tamper-evident logging
 - **Web Dashboard** -- embedded React SPA with settings, registry, policy, and user management
 - **Runtime Configuration** -- manage settings, registries, and policies via Web UI without restart
+- **Multi-Language** -- English, Turkish, German; per-user language preference
 - **Per-User Timezone** -- each user selects their timezone, all dates displayed accordingly
 - **CLI Tool** -- `kantarctl` for scripting and automation
 - **Single Binary** -- Go binary with embedded web UI, no separate frontend deployment
@@ -27,13 +28,13 @@ Kantar proxies, mirrors, approves, and serves packages from multiple ecosystems 
 ```bash
 git clone https://github.com/KilimcininKorOglu/kantar.git
 cd kantar
-docker compose up --build -d
+make docker-up
 ```
 
 On first run, Kantar creates a default admin user and prints the password to stdout:
 
 ```bash
-docker compose logs kantar | grep password
+make docker-logs | grep password
 ```
 
 Open http://localhost:8080 and sign in with `admin` and the printed password.
@@ -43,10 +44,8 @@ Open http://localhost:8080 and sign in with `admin` and the printed password.
 Prerequisites: Go 1.26+, Node.js 22+, PostgreSQL
 
 ```bash
-# Build web UI
-cd web && npm install && npm run build && cd ..
-
-# Build binaries
+# Build web UI + binaries
+make web
 make build-all
 
 # Initialize config
@@ -126,7 +125,7 @@ Kantar uses a two-tier configuration model:
 - **Database** -- runtime settings managed via Web UI (logging, cache, registries, policies)
 
 ```toml
-# kantar.toml — Bootstrap Only
+# kantar.toml -- Bootstrap Only
 [server]
 host = "0.0.0.0"
 port = 8080
@@ -160,9 +159,9 @@ Runtime settings (log level, cache TTL, session TTL, registry modes, policy rule
 |--------|-----------------------------------------|--------------|----------------------------|
 | POST   | `/auth/login`                           | Public       | Get JWT token              |
 | POST   | `/auth/register`                        | Public       | Create user                |
-| GET    | `/system/status`                        | Any role     | Runtime info               |
+| GET    | `/system/status`                        | Any role     | Runtime info + version     |
 | GET    | `/users`                                | Super Admin  | List users                 |
-| PUT    | `/users/{id}`                           | Super Admin  | Update user (inc. timezone)|
+| PUT    | `/users/{id}`                           | Super Admin  | Update user                |
 | DELETE | `/users/{id}`                           | Super Admin  | Delete user                |
 | GET    | `/packages?registry=npm&status=pending` | Consumer+    | List packages              |
 | POST   | `/packages/{id}/approve`                | Reg. Admin+  | Approve + trigger dep sync |
@@ -195,11 +194,15 @@ Runtime settings (log level, cache TTL, session TTL, registry modes, policy rule
 
 ```bash
 make build-all              # Build server + CLI
+make web                    # Build web UI
 make test                   # Run tests with race detector
 make lint                   # golangci-lint
 make fmt                    # Format code
-sqlc generate               # Regenerate SQL query code
-cd web && npm run dev       # Frontend dev server with HMR
+make generate               # Run go generate (sqlc etc.)
+make docker-up              # Build and start Docker stack
+make docker-down            # Stop Docker stack
+make docker-rebuild         # Full rebuild without cache
+make docker-logs            # Show kantar container logs
 ```
 
 ### Project Structure
@@ -221,8 +224,8 @@ internal/sync/       Recursive dependency sync engine
 internal/config/     TOML config loader with env interpolation
 pkg/registry/        Public RegistryPlugin interface
 web/                 React 19 + Vite 6 + Tailwind 4 SPA
-migrations/          Embedded PostgreSQL migrations (4 files)
-deploy/helm/         Kubernetes Helm chart
+web/src/i18n/        Translations (en, tr, de)
+migrations/          Embedded PostgreSQL migrations
 ```
 
 ## Deployment
@@ -230,18 +233,10 @@ deploy/helm/         Kubernetes Helm chart
 ### Docker Compose
 
 ```bash
-docker compose up --build -d
+make docker-up
 ```
 
 Uses PostgreSQL with bind-mount volumes at `./docker-data/`. Config file `kantar.toml` is mounted as `/etc/kantar/kantar.toml`.
-
-### Kubernetes
-
-```bash
-helm install kantar deploy/helm/kantar/ \
-  --set database.postgres.host=postgres.svc \
-  --set database.postgres.password=secret
-```
 
 ### Binary
 
