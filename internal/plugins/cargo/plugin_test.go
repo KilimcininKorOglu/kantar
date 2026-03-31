@@ -2,6 +2,7 @@ package cargo
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -288,7 +289,7 @@ func TestCargoPluginInterface(t *testing.T) {
 		t.Errorf("expected default upstream https://crates.io, got %s", defaults["upstream"])
 	}
 
-	result, err := p.ValidatePackage(nil, nil)
+	result, err := p.ValidatePackage(context.TODO(), nil)
 	if err != nil {
 		t.Errorf("ValidatePackage returned error: %v", err)
 	}

@@ -17,20 +17,20 @@ import (
 type EventType string
 
 const (
-	EventPackageDownload    EventType = "package.download"
-	EventPackageUpload      EventType = "package.upload"
-	EventPackageDelete      EventType = "package.delete"
-	EventPackageApprove     EventType = "package.approve"
-	EventPackageBlock       EventType = "package.block"
-	EventPolicyViolation    EventType = "policy.violation"
-	EventPolicyUpdate       EventType = "policy.update"
-	EventUserLogin          EventType = "user.login"
-	EventUserCreate         EventType = "user.create"
-	EventUserTokenCreate    EventType = "user.token.create"
-	EventRegistrySync       EventType = "registry.sync"
-	EventRegistryConfig     EventType = "registry.config.update"
-	EventSystemGC           EventType = "system.gc"
-	EventSystemBackup       EventType = "system.backup"
+	EventPackageDownload EventType = "package.download"
+	EventPackageUpload   EventType = "package.upload"
+	EventPackageDelete   EventType = "package.delete"
+	EventPackageApprove  EventType = "package.approve"
+	EventPackageBlock    EventType = "package.block"
+	EventPolicyViolation EventType = "policy.violation"
+	EventPolicyUpdate    EventType = "policy.update"
+	EventUserLogin       EventType = "user.login"
+	EventUserCreate      EventType = "user.create"
+	EventUserTokenCreate EventType = "user.token.create"
+	EventRegistrySync    EventType = "registry.sync"
+	EventRegistryConfig  EventType = "registry.config.update"
+	EventSystemGC        EventType = "system.gc"
+	EventSystemBackup    EventType = "system.backup"
 )
 
 // Actor identifies who performed the action.
@@ -94,10 +94,10 @@ func (l *Logger) Log(ctx context.Context, event *Event) error {
 	}
 
 	_, err = l.queries.CreateAuditLog(ctx, sqlc.CreateAuditLogParams{
-		Event:          string(event.EventType),
-		ActorUsername:   event.Actor.Username,
-		ActorIp:        event.Actor.IP,
-		ActorUserAgent: event.Actor.UserAgent,
+		Event:            string(event.EventType),
+		ActorUsername:    event.Actor.Username,
+		ActorIp:          event.Actor.IP,
+		ActorUserAgent:   event.Actor.UserAgent,
 		ResourceRegistry: event.Resource.Registry,
 		ResourcePackage:  event.Resource.Package,
 		ResourceVersion:  event.Resource.Version,

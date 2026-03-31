@@ -97,7 +97,7 @@ func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange str
 	version := versionRange
 	if version == "" || version == "*" || version == "latest" {
 		// Try to find latest version from stored metadata
-		return nil, "", fmt.Errorf("Helm requires explicit version for %s", name)
+		return nil, "", fmt.Errorf("helm requires explicit version for %s", name)
 	}
 
 	// Read chart .tgz from storage
@@ -143,7 +143,7 @@ func extractChartYAML(r io.Reader, chartName string) (string, error) {
 			return string(data), nil
 		}
 	}
-	return "", fmt.Errorf("Chart.yaml not found in archive")
+	return "", fmt.Errorf("chart.yaml not found in archive")
 }
 
 // parseChartDependencies extracts dependencies from Chart.yaml content

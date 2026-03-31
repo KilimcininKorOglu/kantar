@@ -32,9 +32,9 @@ import (
 	"github.com/KilimcininKorOglu/kantar/internal/server"
 	"github.com/KilimcininKorOglu/kantar/internal/storage"
 	syncp "github.com/KilimcininKorOglu/kantar/internal/sync"
-	"github.com/KilimcininKorOglu/kantar/pkg/registry"
 	"github.com/KilimcininKorOglu/kantar/internal/util"
 	"github.com/KilimcininKorOglu/kantar/migrations"
+	"github.com/KilimcininKorOglu/kantar/pkg/registry"
 	"github.com/KilimcininKorOglu/kantar/web"
 )
 
@@ -241,7 +241,6 @@ func buildApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*se
 	return srv, cleanup, nil
 }
 
-
 func buildPluginConfigs(registries map[string]config.RegistryConfig) map[string]map[string]any {
 	configs := make(map[string]map[string]any, len(registries))
 	for eco, rc := range registries {
@@ -348,12 +347,12 @@ func seedSettings(ctx context.Context, queries *sqlc.Queries, cfg *config.Config
 		{"log.level", cfg.Logging.Level, "logging", "Log level (debug, info, warn, error)"},
 		{"log.format", cfg.Logging.Format, "logging", "Log format (json, text)"},
 		{"log.audit_enabled", fmt.Sprintf("%t", cfg.Logging.AuditEnabled), "logging", "Enable audit logging"},
-		{"log.audit_retention", cfg.Logging.AuditRetention.Duration.String(), "logging", "Audit log retention period"},
+		{"log.audit_retention", cfg.Logging.AuditRetention.String(), "logging", "Audit log retention period"},
 		{"cache.enabled", fmt.Sprintf("%t", cfg.Cache.Enabled), "cache", "Enable caching"},
 		{"cache.max_size", cfg.Cache.MaxSize, "cache", "Maximum cache size"},
-		{"cache.ttl", cfg.Cache.TTL.Duration.String(), "cache", "Cache TTL"},
-		{"auth.session_ttl", cfg.Auth.SessionTTL.Duration.String(), "auth", "Session token TTL"},
-		{"auth.token_ttl", cfg.Auth.TokenTTL.Duration.String(), "auth", "API token TTL"},
+		{"cache.ttl", cfg.Cache.TTL.String(), "cache", "Cache TTL"},
+		{"auth.session_ttl", cfg.Auth.SessionTTL.String(), "auth", "Session token TTL"},
+		{"auth.token_ttl", cfg.Auth.TokenTTL.String(), "auth", "API token TTL"},
 		{"notifications.enabled", fmt.Sprintf("%t", cfg.Notifications.Enabled), "notifications", "Enable notifications"},
 	}
 

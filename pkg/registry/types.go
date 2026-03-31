@@ -8,18 +8,18 @@ import (
 
 // PackageMeta holds metadata about a package without the actual content.
 type PackageMeta struct {
-	Name         string            `json:"name"`
-	Registry     EcosystemType     `json:"registry"`
-	Description  string            `json:"description,omitempty"`
-	License      string            `json:"license,omitempty"`
-	Versions     []VersionInfo     `json:"versions,omitempty"`
-	LatestVersion string           `json:"latestVersion,omitempty"`
-	Maintainers  []string          `json:"maintainers,omitempty"`
-	Homepage     string            `json:"homepage,omitempty"`
-	Repository   string            `json:"repository,omitempty"`
-	CreatedAt    time.Time         `json:"createdAt"`
-	UpdatedAt    time.Time         `json:"updatedAt"`
-	Extra        map[string]any    `json:"extra,omitempty"`
+	Name          string         `json:"name"`
+	Registry      EcosystemType  `json:"registry"`
+	Description   string         `json:"description,omitempty"`
+	License       string         `json:"license,omitempty"`
+	Versions      []VersionInfo  `json:"versions,omitempty"`
+	LatestVersion string         `json:"latestVersion,omitempty"`
+	Maintainers   []string       `json:"maintainers,omitempty"`
+	Homepage      string         `json:"homepage,omitempty"`
+	Repository    string         `json:"repository,omitempty"`
+	CreatedAt     time.Time      `json:"createdAt"`
+	UpdatedAt     time.Time      `json:"updatedAt"`
+	Extra         map[string]any `json:"extra,omitempty"`
 }
 
 // VersionInfo holds metadata for a specific package version.
@@ -58,9 +58,9 @@ type Dependency struct {
 
 // ValidationResult holds the result of package validation.
 type ValidationResult struct {
-	Valid      bool        `json:"valid"`
-	Errors     []string   `json:"errors,omitempty"`
-	Warnings   []string   `json:"warnings,omitempty"`
+	Valid    bool     `json:"valid"`
+	Errors   []string `json:"errors,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
 }
 
 // Route defines an HTTP route that a plugin wants to register.

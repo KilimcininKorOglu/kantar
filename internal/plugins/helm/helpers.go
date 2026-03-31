@@ -67,7 +67,7 @@ func generateIndexYAML(entries map[string][]chartMeta) string {
 			return versions[i].Created.After(versions[j].Created)
 		})
 
-		b.WriteString(fmt.Sprintf("  %s:\n", yamlEscape(name)))
+		fmt.Fprintf(&b, "  %s:\n", yamlEscape(name))
 
 		for _, v := range versions {
 			b.WriteString("  - name: ")

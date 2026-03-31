@@ -19,13 +19,13 @@ func (e *memoryEntry) expired() bool {
 
 // Memory implements an in-memory LRU-like cache with TTL support.
 type Memory struct {
-	mu         sync.RWMutex
-	entries    map[string]*memoryEntry
-	maxBytes   int64
+	mu           sync.RWMutex
+	entries      map[string]*memoryEntry
+	maxBytes     int64
 	currentBytes int64
-	defaultTTL time.Duration
-	hits       atomic.Int64
-	misses     atomic.Int64
+	defaultTTL   time.Duration
+	hits         atomic.Int64
+	misses       atomic.Int64
 }
 
 // NewMemory creates a new in-memory cache.

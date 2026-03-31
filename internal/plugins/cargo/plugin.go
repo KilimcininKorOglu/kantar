@@ -130,14 +130,6 @@ var cargoHTTPClient = &http.Client{Timeout: 30 * time.Second}
 // ResolveDependencies fetches the crate index from upstream and returns dependencies
 // for the best matching version.
 func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {
-	p.mu.RLock()
-	upstream := p.config.Upstream
-	p.mu.RUnlock()
-
-	if upstream == "" {
-		upstream = "https://crates.io"
-	}
-
 	// Fetch sparse index from crates.io
 	prefix := computePrefix(strings.ToLower(name))
 	url := fmt.Sprintf("https://index.crates.io/%s%s", prefix, strings.ToLower(name))
@@ -577,19 +569,8 @@ func (p *Plugin) handleDownload(w http.ResponseWriter, r *http.Request) {
 // --- Compile-time interface check ---
 var _ registry.RegistryPlugin = (*Plugin)(nil)
 
-// crateStoragePath returns the storage path for a crate file.
-func crateStoragePath(name, version string) string {
-	return fmt.Sprintf("cargo/crates/%s/%s.crate", name, version)
-}
-
-// indexStoragePath returns the storage path for a crate's index file.
-func indexStoragePath(name string) string {
-	prefix := computePrefix(name)
-	return fmt.Sprintf("cargo/index/%s/%s", prefix, name)
-}
-
 // buildPublishBody constructs the Cargo publish wire-format body from JSON metadata and crate bytes.
-func buildPublishBody(meta []byte, crateFile []byte) []byte {
+func buildPublishBody(meta, crateFile []byte) []byte {
 	metaLen := uint32(len(meta))
 	crateLen := uint32(len(crateFile))
 
@@ -603,9 +584,4 @@ func buildPublishBody(meta []byte, crateFile []byte) []byte {
 	)
 	buf = append(buf, crateFile...)
 	return buf
-}
-
-// nowUTC is a helper for consistent timestamps. Kept unexported for internal use.
-func nowUTC() time.Time {
-	return time.Now().UTC()
 }

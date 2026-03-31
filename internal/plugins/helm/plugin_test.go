@@ -2,6 +2,7 @@ package helm
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -275,7 +276,7 @@ func TestPluginInterface(t *testing.T) {
 	}
 
 	// Search should return nil without error.
-	results, err := p.Search(nil, "test")
+	results, err := p.Search(context.TODO(), "test")
 	if err != nil {
 		t.Errorf("search returned error: %v", err)
 	}
@@ -284,13 +285,13 @@ func TestPluginInterface(t *testing.T) {
 	}
 
 	// FetchPackage should return an error.
-	_, err = p.FetchPackage(nil, "test", "1.0.0")
+	_, err = p.FetchPackage(context.TODO(), "test", "1.0.0")
 	if err == nil {
 		t.Error("expected error from FetchPackage")
 	}
 
 	// ValidatePackage should return valid.
-	result, err := p.ValidatePackage(nil, nil)
+	result, err := p.ValidatePackage(context.TODO(), nil)
 	if err != nil {
 		t.Errorf("validate returned error: %v", err)
 	}
@@ -307,13 +308,13 @@ func TestPluginInterface(t *testing.T) {
 	}
 
 	// PublishPackage should return an error.
-	err = p.PublishPackage(nil, nil)
+	err = p.PublishPackage(context.TODO(), nil)
 	if err == nil {
 		t.Error("expected error from PublishPackage")
 	}
 
 	// FetchMetadata should return basic metadata.
-	meta, err := p.FetchMetadata(nil, "test-chart")
+	meta, err := p.FetchMetadata(context.TODO(), "test-chart")
 	if err != nil {
 		t.Errorf("fetch metadata error: %v", err)
 	}

@@ -115,7 +115,7 @@ func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange str
 
 	version := versionRange
 	if version == "" || version == "*" || version == "latest" {
-		return nil, "", fmt.Errorf("Maven requires explicit version for %s", name)
+		return nil, "", fmt.Errorf("maven requires explicit version for %s", name)
 	}
 
 	// Fetch POM

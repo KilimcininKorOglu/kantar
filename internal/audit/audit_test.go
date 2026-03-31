@@ -102,7 +102,7 @@ func TestComputeHashDeterministic(t *testing.T) {
 		Result:    "success",
 		PrevHash:  "abc123",
 	}
-	e.Timestamp = e.Timestamp // ensure zero time
+	_ = e.Timestamp // ensure zero time is used as-is
 
 	hash1 := computeHash(e)
 	hash2 := computeHash(e)

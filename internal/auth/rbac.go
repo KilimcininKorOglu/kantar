@@ -9,21 +9,21 @@ import (
 type Role string
 
 const (
-	RoleSuperAdmin   Role = "super_admin"
+	RoleSuperAdmin    Role = "super_admin"
 	RoleRegistryAdmin Role = "registry_admin"
-	RolePublisher    Role = "publisher"
-	RoleConsumer     Role = "consumer"
-	RoleViewer       Role = "viewer"
+	RolePublisher     Role = "publisher"
+	RoleConsumer      Role = "consumer"
+	RoleViewer        Role = "viewer"
 )
 
 // roleHierarchy defines the permission level for each role.
 // Higher number = more permissions.
 var roleHierarchy = map[Role]int{
-	RoleSuperAdmin:   100,
+	RoleSuperAdmin:    100,
 	RoleRegistryAdmin: 80,
-	RolePublisher:    60,
-	RoleConsumer:     40,
-	RoleViewer:       20,
+	RolePublisher:     60,
+	RoleConsumer:      40,
+	RoleViewer:        20,
 }
 
 // HasPermission checks if a role has at least the required permission level.
