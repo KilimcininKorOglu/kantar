@@ -16,9 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+
+      - name: Build web UI
+        run: cd web && npm ci && npm run build
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
@@ -66,9 +73,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+
+      - name: Build web UI
+        run: cd web && npm ci && npm run build
 
       - name: Build binaries
         run: make build-all
