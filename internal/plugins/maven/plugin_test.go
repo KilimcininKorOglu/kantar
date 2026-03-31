@@ -330,9 +330,6 @@ func TestMavenPluginInterface(t *testing.T) {
 	if p.Ecosystem() != registry.EcosystemMaven {
 		t.Errorf("expected ecosystem %q, got %q", registry.EcosystemMaven, p.Ecosystem())
 	}
-	if p.Version() != "0.1.0" {
-		t.Errorf("expected version '0.1.0', got %q", p.Version())
-	}
 
 	routes := p.Routes()
 	if len(routes) != 2 {

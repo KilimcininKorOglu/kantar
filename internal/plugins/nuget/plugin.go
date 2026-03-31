@@ -38,7 +38,6 @@ func New(store storage.Storage, logger *slog.Logger) *Plugin {
 }
 
 func (p *Plugin) Name() string                      { return "NuGet Registry" }
-func (p *Plugin) Version() string                   { return "0.1.0" }
 func (p *Plugin) Ecosystem() registry.EcosystemType { return registry.EcosystemNuGet }
 
 func (p *Plugin) Configure(config map[string]any) error {

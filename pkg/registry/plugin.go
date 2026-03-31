@@ -27,9 +27,6 @@ type RegistryPlugin interface {
 	// Name returns the human-readable plugin name.
 	Name() string
 
-	// Version returns the plugin version string.
-	Version() string
-
 	// Ecosystem returns the ecosystem type this plugin handles.
 	Ecosystem() EcosystemType
 

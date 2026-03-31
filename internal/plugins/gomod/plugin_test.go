@@ -297,9 +297,6 @@ func TestPluginInterface(t *testing.T) {
 	if p.Ecosystem() != registry.EcosystemGoMod {
 		t.Errorf("expected gomod, got %s", p.Ecosystem())
 	}
-	if p.Version() != "0.1.0" {
-		t.Errorf("expected 0.1.0, got %s", p.Version())
-	}
 	if len(p.Routes()) != 2 {
 		t.Errorf("expected 2 routes, got %d", len(p.Routes()))
 	}

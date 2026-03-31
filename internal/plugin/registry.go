@@ -40,7 +40,6 @@ func (r *Registry) Register(plugin registry.RegistryPlugin) error {
 	r.plugins[eco] = plugin
 	r.logger.Info("plugin registered",
 		"name", plugin.Name(),
-		"version", plugin.Version(),
 		"ecosystem", eco,
 	)
 

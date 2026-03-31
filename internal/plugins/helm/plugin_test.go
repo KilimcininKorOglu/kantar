@@ -264,9 +264,6 @@ func TestPluginInterface(t *testing.T) {
 	if p.Ecosystem() != registry.EcosystemHelm {
 		t.Errorf("expected %s, got %s", registry.EcosystemHelm, p.Ecosystem())
 	}
-	if p.Version() != "0.1.0" {
-		t.Errorf("expected 0.1.0, got %s", p.Version())
-	}
 	if len(p.Routes()) != 4 {
 		t.Errorf("expected 4 routes, got %d", len(p.Routes()))
 	}
