@@ -153,6 +153,7 @@ func (e *Engine) processSyncJob(ctx context.Context, entry *jobEntry) {
 	}
 
 	visited := make(map[string]struct{})
+	queued := make(map[string]struct{})
 	synced := int64(0)
 	var errors []string
 
@@ -161,6 +162,9 @@ func (e *Engine) processSyncJob(ctx context.Context, entry *jobEntry) {
 		versionRange string
 		depth        int
 	}
+
+	initialKey := job.PackageName + "@" + job.Version
+	queued[initialKey] = struct{}{}
 
 	queue := []treeNode{{
 		name:         job.PackageName,
@@ -256,7 +260,7 @@ func (e *Engine) processSyncJob(ctx context.Context, entry *jobEntry) {
 			ID:             jobID,
 		})
 
-		// Enqueue child dependencies
+		// Enqueue child dependencies (deduplicate before network calls)
 		for _, dep := range deps {
 			if dep.Dev && !job.Options.IncludeDev {
 				continue
@@ -264,6 +268,11 @@ func (e *Engine) processSyncJob(ctx context.Context, entry *jobEntry) {
 			if dep.Optional && !job.Options.IncludeOptional {
 				continue
 			}
+			childKey := dep.Name + "@" + dep.VersionRange
+			if _, alreadyQueued := queued[childKey]; alreadyQueued {
+				continue
+			}
+			queued[childKey] = struct{}{}
 			queue = append(queue, treeNode{
 				name:         dep.Name,
 				versionRange: dep.VersionRange,
