@@ -20,29 +20,27 @@ linters:
     - unconvert
     - unparam
     - nolintlint
-
-linters-settings:
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
-    disabled-checks:
-      - hugeParam
-  revive:
-    rules:
-      - name: exported
-        arguments:
-          - "checkPrivateReceivers"
-      - name: unused-parameter
-  misspell:
-    locale: US
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
+  settings:
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        - hugeParam
+    revive:
+      rules:
+        - name: exported
+          arguments:
+            - "checkPrivateReceivers"
+        - name: unused-parameter
+    misspell:
+      locale: US
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
 
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 50
   max-same-issues: 5
