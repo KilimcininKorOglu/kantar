@@ -139,6 +139,13 @@ func (s *Server) setupAPIRoutes(r chi.Router) {
 
 		r.Get("/system/status", s.handleSystemStatus)
 
+		// Profile — any authenticated user can manage their own profile
+		r.Route("/profile", func(r chi.Router) {
+			r.Get("/", s.handleGetProfile)
+			r.Put("/", s.handleUpdateProfile)
+			r.Put("/password", s.handleChangePassword)
+		})
+
 		// User management — super_admin only
 		r.Route("/users", func(r chi.Router) {
 			r.Use(auth.RequireRole(auth.RoleSuperAdmin))

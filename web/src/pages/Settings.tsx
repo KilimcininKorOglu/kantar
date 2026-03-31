@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
 import type { SystemStatus } from '../api/types'
-import { useAuth } from '../hooks/useAuth'
-import { getTimezone, setTimezone as setTz, getTimezoneList } from '../utils/date'
-import { setLocale, getLocale, supportedLocales } from '../i18n'
-import { Cpu, HardDrive, Activity, Clock, Globe, Languages, Pencil, Check, X } from 'lucide-react'
+import { Cpu, HardDrive, Activity, Clock, Pencil, Check, X } from 'lucide-react'
 
 interface Setting {
   key: string; value: string; category: string; description: string; updatedAt: string
@@ -13,14 +10,11 @@ interface Setting {
 
 export default function Settings() {
   const { t } = useTranslation()
-  const { user } = useAuth()
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [settings, setSettings] = useState<Setting[]>([])
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
-  const [timezone, setTimezone] = useState(getTimezone())
-  const [locale, setLang] = useState(getLocale())
 
   useEffect(() => {
     api.get<SystemStatus>('/system/status').then(setStatus).catch(() => {})
@@ -39,16 +33,6 @@ export default function Settings() {
     setSaving(false)
   }
 
-  const handleTimezoneChange = async (tz: string) => {
-    setTimezone(tz); setTz(tz)
-    if (user) { try { await api.put(`/users/${user.id}`, { timezone: tz }) } catch {} }
-  }
-
-  const handleLocaleChange = async (lng: string) => {
-    setLang(lng); setLocale(lng)
-    if (user) { try { await api.put(`/users/${user.id}`, { locale: lng }) } catch {} }
-  }
-
   return (
     <div className="space-y-5">
       {/* System Info */}
@@ -59,39 +43,6 @@ export default function Settings() {
           <SysInfo icon={Clock} label="Uptime" value={status?.uptime || '—'} />
           <SysInfo icon={Cpu} label="Go" value={status?.goVersion || '—'} mono />
           <SysInfo icon={HardDrive} label="Memory" value={status ? `${(status.memory.allocBytes / 1048576).toFixed(1)} MB` : '—'} mono />
-        </div>
-      </div>
-
-      {/* Display Preferences */}
-      <div className="bg-surface border border-border rounded p-4">
-        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">{t('settings.display')}</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Globe className="w-3.5 h-3.5 text-text-dim" />
-              <div>
-                <div className="text-xs text-text">{t('settings.timezone')}</div>
-                <div className="text-[10px] text-text-dim">{t('settings.timezoneDesc')}</div>
-              </div>
-            </div>
-            <select value={timezone} onChange={e => handleTimezoneChange(e.target.value)}
-              className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text w-56">
-              {getTimezoneList().map(tz => <option key={tz} value={tz}>{tz}</option>)}
-            </select>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Languages className="w-3.5 h-3.5 text-text-dim" />
-              <div>
-                <div className="text-xs text-text">{t('settings.language')}</div>
-                <div className="text-[10px] text-text-dim">{t('settings.languageDesc')}</div>
-              </div>
-            </div>
-            <select value={locale} onChange={e => handleLocaleChange(e.target.value)}
-              className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text w-56">
-              {supportedLocales.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
-            </select>
-          </div>
         </div>
       </div>
 

@@ -122,5 +122,17 @@
   "settings.timezone": "Saat Dilimi",
   "settings.timezoneDesc": "Tum tarihler bu saat diliminde gosterilir",
   "settings.language": "Dil",
-  "settings.languageDesc": "Arayuz dili"
+  "settings.languageDesc": "Arayuz dili",
+  "profile.title": "Profil",
+  "profile.preferences": "Tercihler",
+  "profile.changePassword": "Sifre Degistir",
+  "profile.currentPassword": "Mevcut Sifre",
+  "profile.newPassword": "Yeni Sifre",
+  "profile.confirmPassword": "Sifre Tekrar",
+  "profile.passwordChanged": "Sifre basariyla degistirildi",
+  "profile.passwordMismatch": "Sifreler eslesmiyor",
+  "profile.incorrectPassword": "Mevcut sifre hatali",
+  "profile.profileUpdated": "Profil guncellendi",
+  "profile.failedToUpdate": "Profil guncellenemedi",
+  "profile.failedToChangePassword": "Sifre degistirilemedi"
 }

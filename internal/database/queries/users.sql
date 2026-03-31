@@ -20,6 +20,14 @@ WHERE id = $6;
 UPDATE users SET timezone = $1, updated_at = CURRENT_TIMESTAMP
 WHERE id = $2;
 
+-- name: UpdateUserProfile :exec
+UPDATE users SET email = $1, timezone = $2, locale = $3, updated_at = CURRENT_TIMESTAMP
+WHERE id = $4;
+
+-- name: UpdateUserPassword :exec
+UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP
+WHERE id = $2;
+
 -- name: DeleteUser :exec
 DELETE FROM users WHERE id = $1;
 

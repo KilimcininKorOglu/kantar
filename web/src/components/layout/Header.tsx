@@ -11,6 +11,7 @@ const pageTitleKeys: Record<string, string> = {
   '/policies': 'nav.policies',
   '/audit': 'nav.auditLog',
   '/settings': 'nav.settings',
+  '/profile': 'profile.title',
 }
 
 export default function Header() {
@@ -30,10 +31,10 @@ export default function Header() {
     <header className="h-12 bg-surface border-b border-border flex items-center justify-between px-6">
       <h2 className="text-sm font-semibold text-text">{t(titleKey)}</h2>
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 text-text-muted">
+        <button onClick={() => navigate('/profile')} className="flex items-center gap-2 text-text-muted hover:text-accent cursor-pointer">
           <User className="w-3.5 h-3.5" />
           <span className="text-xs font-medium">{user?.username}</span>
-        </div>
+        </button>
         <button
           onClick={handleLogout}
           className="flex items-center gap-1.5 text-xs text-text-dim hover:text-danger cursor-pointer"

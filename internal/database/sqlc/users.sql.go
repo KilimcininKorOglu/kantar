@@ -179,6 +179,43 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 	return err
 }
 
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP
+WHERE id = $2
+`
+
+type UpdateUserPasswordParams struct {
+	PasswordHash string
+	ID           int64
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.PasswordHash, arg.ID)
+	return err
+}
+
+const updateUserProfile = `-- name: UpdateUserProfile :exec
+UPDATE users SET email = $1, timezone = $2, locale = $3, updated_at = CURRENT_TIMESTAMP
+WHERE id = $4
+`
+
+type UpdateUserProfileParams struct {
+	Email    sql.NullString
+	Timezone string
+	Locale   string
+	ID       int64
+}
+
+func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserProfile,
+		arg.Email,
+		arg.Timezone,
+		arg.Locale,
+		arg.ID,
+	)
+	return err
+}
+
 const updateUserTimezone = `-- name: UpdateUserTimezone :exec
 UPDATE users SET timezone = $1, updated_at = CURRENT_TIMESTAMP
 WHERE id = $2

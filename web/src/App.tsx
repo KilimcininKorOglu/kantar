@@ -10,6 +10,7 @@ import Users from './pages/Users'
 import AuditLog from './pages/AuditLog'
 import Policies from './pages/Policies'
 import Settings from './pages/Settings'
+import Profile from './pages/Profile'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="audit" element={<AuditLog />} />
         <Route path="policies" element={<Policies />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
     </Routes>
   )

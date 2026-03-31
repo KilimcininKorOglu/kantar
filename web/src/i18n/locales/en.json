@@ -122,5 +122,17 @@
   "settings.timezone": "Timezone",
   "settings.timezoneDesc": "All dates displayed in this timezone",
   "settings.language": "Language",
-  "settings.languageDesc": "Interface language"
+  "settings.languageDesc": "Interface language",
+  "profile.title": "Profile",
+  "profile.preferences": "Preferences",
+  "profile.changePassword": "Change Password",
+  "profile.currentPassword": "Current Password",
+  "profile.newPassword": "New Password",
+  "profile.confirmPassword": "Confirm Password",
+  "profile.passwordChanged": "Password changed successfully",
+  "profile.passwordMismatch": "Passwords do not match",
+  "profile.incorrectPassword": "Current password is incorrect",
+  "profile.profileUpdated": "Profile updated",
+  "profile.failedToUpdate": "Failed to update profile",
+  "profile.failedToChangePassword": "Failed to change password"
 }
