@@ -31,7 +31,11 @@ export default function Login() {
       }
 
       const data = await res.json()
-      login(data.token, data.user || { id: 1, username, email: '', role: 'super_admin', active: true, timezone: 'UTC', locale: 'en', createdAt: '', updatedAt: '' })
+      if (!data.token || !data.user) {
+        setError(t('login.invalidCredentials'))
+        return
+      }
+      login(data.token, data.user)
       navigate('/')
     } catch {
       setError(t('login.connectionError'))
