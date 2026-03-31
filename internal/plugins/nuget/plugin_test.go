@@ -190,8 +190,8 @@ func TestPluginInterface(t *testing.T) {
 	if len(p.Routes()) != 5 {
 		t.Errorf("expected 5 routes, got %d", len(p.Routes()))
 	}
-	if p.Version() != "1.0.0" {
-		t.Errorf("expected version 1.0.0, got %s", p.Version())
+	if p.Version() != "0.1.0" {
+		t.Errorf("expected version 0.1.0, got %s", p.Version())
 	}
 
 	defaults := p.DefaultConfig()

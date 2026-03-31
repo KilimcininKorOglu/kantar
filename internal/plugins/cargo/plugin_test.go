@@ -277,8 +277,8 @@ func TestCargoPluginInterface(t *testing.T) {
 	if p.Ecosystem() != registry.EcosystemCargo {
 		t.Errorf("expected cargo, got %s", p.Ecosystem())
 	}
-	if p.Version() != "1.0.0" {
-		t.Errorf("expected 1.0.0, got %s", p.Version())
+	if p.Version() != "0.1.0" {
+		t.Errorf("expected 0.1.0, got %s", p.Version())
 	}
 
 	routes := p.Routes()
