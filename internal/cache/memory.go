@@ -47,9 +47,8 @@ func NewMemory(maxBytes int64, defaultTTL time.Duration) *Memory {
 func (m *Memory) Get(_ context.Context, key string) ([]byte, error) {
 	m.mu.RLock()
 	entry, ok := m.entries[key]
-	m.mu.RUnlock()
-
 	if !ok || entry.expired() {
+		m.mu.RUnlock()
 		m.misses.Add(1)
 		if ok && entry.expired() {
 			m.mu.Lock()
@@ -58,11 +57,12 @@ func (m *Memory) Get(_ context.Context, key string) ([]byte, error) {
 		}
 		return nil, nil
 	}
-
-	m.hits.Add(1)
-	// Return a copy to prevent mutation
+	// Copy while lock is held to prevent TOCTOU race
 	result := make([]byte, len(entry.value))
 	copy(result, entry.value)
+	m.mu.RUnlock()
+
+	m.hits.Add(1)
 	return result, nil
 }
 
