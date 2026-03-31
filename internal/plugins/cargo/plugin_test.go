@@ -124,9 +124,9 @@ func TestCargoPublishAndIndex(t *testing.T) {
 	_, r := setupTestPlugin(t)
 
 	meta := publishRequest{
-		Name:    "tokio",
-		Vers:    "1.0.0",
-		Deps:    []publishDep{},
+		Name:     "tokio",
+		Vers:     "1.0.0",
+		Deps:     []publishDep{},
 		Features: map[string][]string{"default": {}},
 	}
 

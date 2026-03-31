@@ -78,8 +78,8 @@ var nugetHTTPClient = &http.Client{Timeout: 30 * time.Second}
 
 type nugetRegistrationResponse struct {
 	CatalogEntry struct {
-		ID               string                `json:"id"`
-		Version          string                `json:"version"`
+		ID               string                 `json:"id"`
+		Version          string                 `json:"version"`
 		DependencyGroups []nugetDependencyGroup `json:"dependencyGroups"`
 	} `json:"catalogEntry"`
 }

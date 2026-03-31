@@ -12,7 +12,7 @@ type auditLogResponse struct {
 	ID               int64     `json:"id"`
 	Timestamp        time.Time `json:"timestamp"`
 	Event            string    `json:"event"`
-	ActorUsername     string    `json:"actorUsername"`
+	ActorUsername    string    `json:"actorUsername"`
 	ActorIP          string    `json:"actorIp"`
 	ActorUserAgent   string    `json:"actorUserAgent"`
 	ResourceRegistry string    `json:"resourceRegistry"`
@@ -29,7 +29,7 @@ func toAuditLogResponse(a sqlc.AuditLog) auditLogResponse {
 		ID:               a.ID,
 		Timestamp:        a.Timestamp,
 		Event:            a.Event,
-		ActorUsername:     a.ActorUsername,
+		ActorUsername:    a.ActorUsername,
 		ActorIP:          a.ActorIp,
 		ActorUserAgent:   a.ActorUserAgent,
 		ResourceRegistry: a.ResourceRegistry,

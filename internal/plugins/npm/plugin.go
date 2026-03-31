@@ -16,10 +16,10 @@ import (
 
 // Plugin implements the RegistryPlugin interface for npm packages.
 type Plugin struct {
-	mu       sync.RWMutex
-	storage  storage.Storage
-	logger   *slog.Logger
-	config   pluginConfig
+	mu      sync.RWMutex
+	storage storage.Storage
+	logger  *slog.Logger
+	config  pluginConfig
 }
 
 type pluginConfig struct {
@@ -194,12 +194,12 @@ func (p *Plugin) Routes() []registry.Route {
 
 // Packument is the npm registry package document format.
 type Packument struct {
-	Name        string                       `json:"name"`
-	Description string                       `json:"description,omitempty"`
-	DistTags    map[string]string            `json:"dist-tags,omitempty"`
-	Versions    map[string]VersionDoc        `json:"versions,omitempty"`
-	Time        map[string]string            `json:"time,omitempty"`
-	License     string                       `json:"license,omitempty"`
+	Name        string                `json:"name"`
+	Description string                `json:"description,omitempty"`
+	DistTags    map[string]string     `json:"dist-tags,omitempty"`
+	Versions    map[string]VersionDoc `json:"versions,omitempty"`
+	Time        map[string]string     `json:"time,omitempty"`
+	License     string                `json:"license,omitempty"`
 }
 
 // VersionDoc is a single version entry in a packument.

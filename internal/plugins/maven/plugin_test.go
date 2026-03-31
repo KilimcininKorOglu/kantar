@@ -188,14 +188,14 @@ func TestMavenArtifactNotFound(t *testing.T) {
 
 func TestParseMavenPath(t *testing.T) {
 	tests := []struct {
-		name       string
-		path       string
-		wantGroup  string
-		wantArtID  string
-		wantVer    string
-		wantFile   string
-		wantMeta   bool
-		wantErr    bool
+		name      string
+		path      string
+		wantGroup string
+		wantArtID string
+		wantVer   string
+		wantFile  string
+		wantMeta  bool
+		wantErr   bool
 	}{
 		{
 			name:      "artifact path",

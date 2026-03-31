@@ -4,10 +4,10 @@ import "testing"
 
 func TestParseVersion(t *testing.T) {
 	tests := []struct {
-		input                        string
-		major, minor, patch          int
-		pre                          string
-		ok                           bool
+		input               string
+		major, minor, patch int
+		pre                 string
+		ok                  bool
 	}{
 		{"1.2.3", 1, 2, 3, "", true},
 		{"0.0.1", 0, 0, 1, "", true},
@@ -119,10 +119,10 @@ func TestSelectBestVersion(t *testing.T) {
 		{"^4.17.0", "4.18.2", true},
 		{"~4.18.0", "4.18.2", true},
 		{"^3.0.0", "3.9.0", true},
-		{"^5.0.0", "", false},          // 5.0.0-beta.1 skipped (pre-release)
+		{"^5.0.0", "", false}, // 5.0.0-beta.1 skipped (pre-release)
 		{">=4.18.0", "4.18.2", true},
 		{"*", "4.18.2", true},
-		{"4.17.0", "4.17.0", true},     // Exact match
+		{"4.17.0", "4.17.0", true}, // Exact match
 	}
 
 	for _, tt := range tests {

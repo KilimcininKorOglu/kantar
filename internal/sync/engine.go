@@ -121,10 +121,10 @@ func (e *Engine) Enqueue(ctx context.Context, job *Job) (int64, error) {
 	default:
 		// Queue full — mark job as failed
 		e.queries.UpdateSyncJobStatus(ctx, sqlc.UpdateSyncJobStatusParams{
-			Status:        "failed",
+			Status:         "failed",
 			PackagesSynced: 0,
-			ErrorMessage:  "sync queue is full, try again later",
-			ID:            dbJob.ID,
+			ErrorMessage:   "sync queue is full, try again later",
+			ID:             dbJob.ID,
 		})
 		return dbJob.ID, fmt.Errorf("sync queue is full")
 	}
@@ -141,10 +141,10 @@ func (e *Engine) processSyncJob(ctx context.Context, entry *jobEntry) {
 	)
 
 	e.queries.UpdateSyncJobStatus(ctx, sqlc.UpdateSyncJobStatusParams{
-		Status:        "running",
+		Status:         "running",
 		PackagesSynced: 0,
-		ErrorMessage:  "",
-		ID:            jobID,
+		ErrorMessage:   "",
+		ID:             jobID,
 	})
 
 	maxDepth := job.Options.MaxDepth
@@ -250,10 +250,10 @@ func (e *Engine) processSyncJob(ctx context.Context, entry *jobEntry) {
 
 		// Update job progress
 		e.queries.UpdateSyncJobStatus(ctx, sqlc.UpdateSyncJobStatusParams{
-			Status:        "running",
+			Status:         "running",
 			PackagesSynced: synced,
-			ErrorMessage:  "",
-			ID:            jobID,
+			ErrorMessage:   "",
+			ID:             jobID,
 		})
 
 		// Enqueue child dependencies
@@ -286,10 +286,10 @@ func (e *Engine) processSyncJob(ctx context.Context, entry *jobEntry) {
 	}
 
 	e.queries.UpdateSyncJobStatus(ctx, sqlc.UpdateSyncJobStatusParams{
-		Status:        status,
+		Status:         status,
 		PackagesSynced: synced,
-		ErrorMessage:  errMsg,
-		ID:            jobID,
+		ErrorMessage:   errMsg,
+		ID:             jobID,
 	})
 
 	if e.auditLog != nil {

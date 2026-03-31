@@ -34,7 +34,7 @@ type pluginConfig struct {
 
 // packageMeta is the internal metadata structure persisted for each package.
 type packageMeta struct {
-	Name     string               `json:"name"`
+	Name     string                 `json:"name"`
 	Versions map[string]versionMeta `json:"versions"`
 }
 

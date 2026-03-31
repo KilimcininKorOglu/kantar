@@ -16,10 +16,10 @@ var (
 
 // FileInfo holds metadata about a stored file.
 type FileInfo struct {
-	Path      string    `json:"path"`
-	Size      int64     `json:"size"`
-	ModTime   time.Time `json:"modTime"`
-	IsDir     bool      `json:"isDir"`
+	Path    string    `json:"path"`
+	Size    int64     `json:"size"`
+	ModTime time.Time `json:"modTime"`
+	IsDir   bool      `json:"isDir"`
 }
 
 // UsageInfo holds disk usage statistics.

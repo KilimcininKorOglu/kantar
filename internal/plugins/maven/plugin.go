@@ -41,7 +41,7 @@ func New(store storage.Storage, logger *slog.Logger) *Plugin {
 }
 
 func (p *Plugin) Name() string                      { return "Maven Repository" }
-func (p *Plugin) Ecosystem() registry.EcosystemType  { return registry.EcosystemMaven }
+func (p *Plugin) Ecosystem() registry.EcosystemType { return registry.EcosystemMaven }
 
 func (p *Plugin) Configure(config map[string]any) error {
 	p.mu.Lock()

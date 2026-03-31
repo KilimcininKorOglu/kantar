@@ -2,14 +2,14 @@
 package helm
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"archive/tar"
-	"compress/gzip"
 	"io"
 	"log/slog"
 	"net/http"

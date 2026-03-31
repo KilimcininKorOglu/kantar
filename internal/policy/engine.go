@@ -34,15 +34,15 @@ type Result struct {
 
 // PackageInfo holds the package metadata needed for policy evaluation.
 type PackageInfo struct {
-	Name         string
-	Version      string
-	License      string
-	Size         int64
-	PublishedAt  time.Time
-	Maintainers  int
-	Deprecated   bool
-	PreRelease   bool
-	LayerCount   int // Docker specific
+	Name        string
+	Version     string
+	License     string
+	Size        int64
+	PublishedAt time.Time
+	Maintainers int
+	Deprecated  bool
+	PreRelease  bool
+	LayerCount  int // Docker specific
 }
 
 // Policy is the interface for individual policy checks.

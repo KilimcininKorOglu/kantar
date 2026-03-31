@@ -16,13 +16,13 @@ func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 }
 
 type systemStatus struct {
-	Status     string         `json:"status"`
-	Version    string         `json:"version"`
-	Uptime     string         `json:"uptime"`
-	GoVersion  string         `json:"goVersion"`
-	NumCPU     int            `json:"numCpu"`
-	Goroutines int            `json:"goroutines"`
-	Memory     memoryStatus   `json:"memory"`
+	Status     string       `json:"status"`
+	Version    string       `json:"version"`
+	Uptime     string       `json:"uptime"`
+	GoVersion  string       `json:"goVersion"`
+	NumCPU     int          `json:"numCpu"`
+	Goroutines int          `json:"goroutines"`
+	Memory     memoryStatus `json:"memory"`
 }
 
 type memoryStatus struct {

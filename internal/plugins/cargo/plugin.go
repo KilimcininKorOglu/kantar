@@ -34,50 +34,50 @@ type pluginConfig struct {
 // indexEntry represents a single version entry in the Cargo sparse index.
 // Each version is stored as one JSON line in the index file.
 type indexEntry struct {
-	Name    string            `json:"name"`
-	Vers    string            `json:"vers"`
-	Deps    []indexDep        `json:"deps"`
-	Cksum   string            `json:"cksum"`
+	Name     string              `json:"name"`
+	Vers     string              `json:"vers"`
+	Deps     []indexDep          `json:"deps"`
+	Cksum    string              `json:"cksum"`
 	Features map[string][]string `json:"features"`
-	Yanked  bool              `json:"yanked"`
-	Links   string            `json:"links,omitempty"`
+	Yanked   bool                `json:"yanked"`
+	Links    string              `json:"links,omitempty"`
 }
 
 // indexDep represents a dependency in a Cargo index entry.
 type indexDep struct {
-	Name             string   `json:"name"`
-	Req              string   `json:"req"`
-	Features         []string `json:"features"`
-	Optional         bool     `json:"optional"`
-	DefaultFeatures  bool     `json:"default_features"`
-	Target           string   `json:"target,omitempty"`
-	Kind             string   `json:"kind,omitempty"`
-	Registry         string   `json:"registry,omitempty"`
-	Package          string   `json:"package,omitempty"`
+	Name            string   `json:"name"`
+	Req             string   `json:"req"`
+	Features        []string `json:"features"`
+	Optional        bool     `json:"optional"`
+	DefaultFeatures bool     `json:"default_features"`
+	Target          string   `json:"target,omitempty"`
+	Kind            string   `json:"kind,omitempty"`
+	Registry        string   `json:"registry,omitempty"`
+	Package         string   `json:"package,omitempty"`
 }
 
 // publishRequest is the JSON metadata sent during crate publish.
 type publishRequest struct {
-	Name    string           `json:"name"`
-	Vers    string           `json:"vers"`
-	Deps    []publishDep     `json:"deps"`
+	Name     string              `json:"name"`
+	Vers     string              `json:"vers"`
+	Deps     []publishDep        `json:"deps"`
 	Features map[string][]string `json:"features"`
-	Links   string           `json:"links,omitempty"`
-	License string           `json:"license,omitempty"`
-	Desc    string           `json:"description,omitempty"`
+	Links    string              `json:"links,omitempty"`
+	License  string              `json:"license,omitempty"`
+	Desc     string              `json:"description,omitempty"`
 }
 
 // publishDep is a dependency in a publish request.
 type publishDep struct {
-	Name             string   `json:"name"`
-	VersionReq       string   `json:"version_req"`
-	Features         []string `json:"features"`
-	Optional         bool     `json:"optional"`
-	DefaultFeatures  bool     `json:"default_features"`
-	Target           string   `json:"target,omitempty"`
-	Kind             string   `json:"kind,omitempty"`
-	Registry         string   `json:"registry,omitempty"`
-	ExplicitNameInToml string `json:"explicit_name_in_toml,omitempty"`
+	Name               string   `json:"name"`
+	VersionReq         string   `json:"version_req"`
+	Features           []string `json:"features"`
+	Optional           bool     `json:"optional"`
+	DefaultFeatures    bool     `json:"default_features"`
+	Target             string   `json:"target,omitempty"`
+	Kind               string   `json:"kind,omitempty"`
+	Registry           string   `json:"registry,omitempty"`
+	ExplicitNameInToml string   `json:"explicit_name_in_toml,omitempty"`
 }
 
 // New creates a new Cargo registry plugin.

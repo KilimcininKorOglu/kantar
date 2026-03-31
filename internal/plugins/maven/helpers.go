@@ -79,10 +79,10 @@ func parseMavenPath(rawPath string) (*mavenPathInfo, error) {
 
 // mavenMetadata is the XML structure for maven-metadata.xml.
 type mavenMetadata struct {
-	XMLName    xml.Name          `xml:"metadata"`
-	GroupID    string            `xml:"groupId"`
-	ArtifactID string           `xml:"artifactId"`
-	Versioning mavenVersioning  `xml:"versioning"`
+	XMLName    xml.Name        `xml:"metadata"`
+	GroupID    string          `xml:"groupId"`
+	ArtifactID string          `xml:"artifactId"`
+	Versioning mavenVersioning `xml:"versioning"`
 }
 
 // mavenVersioning holds the versioning block in maven-metadata.xml.
