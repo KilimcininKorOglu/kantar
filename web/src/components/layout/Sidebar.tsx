@@ -48,7 +48,7 @@ export default function Sidebar() {
         ))}
       </nav>
       <div className="px-5 py-3 border-t border-border">
-        <p className="text-[10px] text-text-dim font-mono">v1.0.0</p>
+        <p className="text-[10px] text-text-dim font-mono">v0.1.0</p>
       </div>
     </aside>
   )
