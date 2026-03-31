@@ -26,6 +26,12 @@ var roleHierarchy = map[Role]int{
 	RoleViewer:        20,
 }
 
+// IsValidRole checks if a string is one of the defined roles.
+func IsValidRole(role string) bool {
+	_, ok := roleHierarchy[Role(role)]
+	return ok
+}
+
 // HasPermission checks if a role has at least the required permission level.
 func HasPermission(userRole Role, requiredRole Role) bool {
 	return roleHierarchy[userRole] >= roleHierarchy[requiredRole]

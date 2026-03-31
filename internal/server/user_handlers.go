@@ -101,6 +101,10 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	role := existing.Role
 	if req.Role != "" {
+		if !auth.IsValidRole(req.Role) {
+			writeError(w, http.StatusBadRequest, "invalid role")
+			return
+		}
 		role = req.Role
 	}
 
