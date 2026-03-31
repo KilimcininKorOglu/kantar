@@ -18,6 +18,7 @@ Kantar proxies, mirrors, approves, and serves packages from multiple ecosystems 
 - **Runtime Configuration** -- manage settings, registries, and policies via Web UI without restart
 - **Multi-Language** -- English, Turkish, German; per-user language preference
 - **Per-User Timezone** -- each user selects their timezone, all dates displayed accordingly
+- **User Profile** -- self-service email, timezone, language, and password management
 - **CLI Tool** -- `kantarctl` for scripting and automation
 - **Single Binary** -- Go binary with embedded web UI, no separate frontend deployment
 
@@ -160,6 +161,9 @@ Runtime settings (log level, cache TTL, session TTL, registry modes, policy rule
 | POST   | `/auth/login`                           | Public       | Get JWT token              |
 | POST   | `/auth/register`                        | Public       | Create user                |
 | GET    | `/system/status`                        | Any role     | Runtime info + version     |
+| GET    | `/profile`                              | Any role     | Get own profile            |
+| PUT    | `/profile`                              | Any role     | Update email/timezone/lang |
+| PUT    | `/profile/password`                     | Any role     | Change own password        |
 | GET    | `/users`                                | Super Admin  | List users                 |
 | PUT    | `/users/{id}`                           | Super Admin  | Update user                |
 | DELETE | `/users/{id}`                           | Super Admin  | Delete user                |
