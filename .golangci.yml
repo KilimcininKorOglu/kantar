@@ -11,7 +11,6 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-    - gosimple
     - gocritic
     - revive
     - misspell
@@ -39,6 +38,10 @@ linters:
       enable-all: true
       disable:
         - fieldalignment
+
+formatters:
+  enable:
+    - gofmt
 
 issues:
   max-issues-per-linter: 50
