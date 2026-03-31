@@ -5,7 +5,7 @@ services:
       - "8080:8080"
     volumes:
       - ./docker-data/kantar:/var/lib/kantar
-      - ./kantar.toml:/etc/kantar/kantar.toml:ro
+      - ./docker-data/kantar.toml:/etc/kantar/kantar.toml:ro
     environment:
       - KANTAR_DB_PASSWORD=${DB_PASSWORD:-kantar}
     depends_on:
@@ -33,4 +33,3 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-
