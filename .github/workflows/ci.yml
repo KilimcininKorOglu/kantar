@@ -89,5 +89,5 @@ jobs:
 
       - name: Verify binaries
         run: |
-          ./bin/kantar --version
-          ./bin/kantarctl --version
+          ./bin/kantar version
+          ./bin/kantarctl version
