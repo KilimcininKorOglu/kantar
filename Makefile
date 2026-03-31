@@ -23,7 +23,7 @@ GOLINT := golangci-lint
 BUILD_DIR := bin
 COVERAGE_DIR := coverage
 
-.PHONY: all build build-cli clean test test-cover lint fmt vet run help generate
+.PHONY: all build build-cli clean test test-cover lint fmt vet run help generate web docker-up docker-down docker-rebuild docker-logs
 
 ## Default target
 all: lint test build
@@ -104,6 +104,29 @@ build-cross:
 		GOOS=$${GOOS} GOARCH=$${GOARCH} CGO_ENABLED=0 $(GO) build $(LDFLAGS) -o $${output} ./cmd/kantar || exit 1 ; \
 	done
 
+## Build web UI
+web:
+	cd web && npm run build
+
+## Docker: build and start
+docker-up:
+	docker compose down
+	docker compose up --build -d
+
+## Docker: stop
+docker-down:
+	docker compose down
+
+## Docker: full rebuild without cache
+docker-rebuild:
+	docker compose down
+	docker compose build --no-cache
+	docker compose up -d
+
+## Docker: show logs
+docker-logs:
+	docker compose logs kantar
+
 ## Show help
 help:
 	@echo "Kantar Build System"
@@ -126,5 +149,10 @@ help:
 	@echo "  dev          Run server via go run"
 	@echo "  tidy         Tidy Go modules"
 	@echo "  build-cross  Cross-compile for all platforms"
-	@echo "  clean        Remove build artifacts"
-	@echo "  help         Show this help"
+	@echo "  web            Build web UI"
+	@echo "  docker-up      Build and start Docker"
+	@echo "  docker-down    Stop Docker"
+	@echo "  docker-rebuild Full rebuild without cache"
+	@echo "  docker-logs    Show kantar logs"
+	@echo "  clean          Remove build artifacts"
+	@echo "  help           Show this help"

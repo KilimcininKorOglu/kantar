@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import {
@@ -5,6 +6,8 @@ import {
   FileText, Settings, Scale
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { api } from '../../api/client'
+import type { SystemStatus } from '../../api/types'
 
 const navItems: { to: string; labelKey: string; icon: LucideIcon }[] = [
   { to: '/', labelKey: 'nav.overview', icon: LayoutDashboard },
@@ -18,6 +21,13 @@ const navItems: { to: string; labelKey: string; icon: LucideIcon }[] = [
 
 export default function Sidebar() {
   const { t } = useTranslation()
+  const [version, setVersion] = useState('...')
+
+  useEffect(() => {
+    api.get<SystemStatus>('/system/status')
+      .then(s => setVersion(s.version))
+      .catch(() => {})
+  }, [])
 
   return (
     <aside className="w-56 bg-surface border-r border-border flex flex-col min-h-screen">
@@ -48,7 +58,7 @@ export default function Sidebar() {
         ))}
       </nav>
       <div className="px-5 py-3 border-t border-border">
-        <p className="text-[10px] text-text-dim font-mono">v0.1.0</p>
+        <p className="text-[10px] text-text-dim font-mono">v{version}</p>
       </div>
     </aside>
   )
