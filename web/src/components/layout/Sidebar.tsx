@@ -1,21 +1,24 @@
 import { NavLink } from 'react-router'
+import { useTranslation } from 'react-i18next'
 import {
   LayoutDashboard, Package, Database, Users, Shield,
   FileText, Settings, Scale
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-const navItems: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: '/', label: 'Overview', icon: LayoutDashboard },
-  { to: '/packages', label: 'Packages', icon: Package },
-  { to: '/registries', label: 'Registries', icon: Database },
-  { to: '/users', label: 'Users', icon: Users },
-  { to: '/policies', label: 'Policies', icon: Shield },
-  { to: '/audit', label: 'Audit Log', icon: FileText },
-  { to: '/settings', label: 'Settings', icon: Settings },
+const navItems: { to: string; labelKey: string; icon: LucideIcon }[] = [
+  { to: '/', labelKey: 'nav.overview', icon: LayoutDashboard },
+  { to: '/packages', labelKey: 'nav.packages', icon: Package },
+  { to: '/registries', labelKey: 'nav.registries', icon: Database },
+  { to: '/users', labelKey: 'nav.users', icon: Users },
+  { to: '/policies', labelKey: 'nav.policies', icon: Shield },
+  { to: '/audit', labelKey: 'nav.auditLog', icon: FileText },
+  { to: '/settings', labelKey: 'nav.settings', icon: Settings },
 ]
 
 export default function Sidebar() {
+  const { t } = useTranslation()
+
   return (
     <aside className="w-56 bg-surface border-r border-border flex flex-col min-h-screen">
       <div className="px-5 py-5 border-b border-border">
@@ -23,7 +26,7 @@ export default function Sidebar() {
           <Scale className="w-5 h-5 text-accent" />
           <h1 className="text-lg font-bold text-text tracking-tight">Kantar</h1>
         </div>
-        <p className="text-[11px] text-text-dim mt-1 tracking-wide uppercase">Package Registry</p>
+        <p className="text-[11px] text-text-dim mt-1 tracking-wide uppercase">{t('app.subtitle')}</p>
       </div>
       <nav className="flex-1 py-3">
         {navItems.map((item) => (
@@ -40,7 +43,7 @@ export default function Sidebar() {
             }
           >
             <item.icon className="w-4 h-4" />
-            {item.label}
+            {t(item.labelKey)}
           </NavLink>
         ))}
       </nav>

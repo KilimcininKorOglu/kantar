@@ -49,6 +49,7 @@ export interface User {
   role: string
   active: boolean
   timezone: string
+  locale: string
   createdAt: string
   updatedAt: string
 }

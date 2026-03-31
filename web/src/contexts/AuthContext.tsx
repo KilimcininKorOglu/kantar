@@ -1,6 +1,7 @@
 import { createContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import type { User } from '../api/types'
 import { setTimezone } from '../utils/date'
+import { setLocale } from '../i18n'
 
 interface AuthState {
   user: User | null
@@ -24,6 +25,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('kantar_user', JSON.stringify(newUser))
     if (newUser.timezone) {
       setTimezone(newUser.timezone)
+    }
+    if (newUser.locale) {
+      setLocale(newUser.locale)
     }
     setToken(newToken)
     setUser(newUser)

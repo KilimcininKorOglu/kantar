@@ -24,7 +24,7 @@ func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, email, password_hash, role)
 VALUES ($1, $2, $3, $4)
-RETURNING id, username, email, password_hash, role, active, created_at, updated_at, timezone
+RETURNING id, username, email, password_hash, role, active, created_at, updated_at, timezone, locale
 `
 
 type CreateUserParams struct {
@@ -52,6 +52,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Timezone,
+		&i.Locale,
 	)
 	return i, err
 }
@@ -66,7 +67,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, password_hash, role, active, created_at, updated_at, timezone FROM users WHERE id = $1 LIMIT 1
+SELECT id, username, email, password_hash, role, active, created_at, updated_at, timezone, locale FROM users WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -82,12 +83,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Timezone,
+		&i.Locale,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, password_hash, role, active, created_at, updated_at, timezone FROM users WHERE username = $1 LIMIT 1
+SELECT id, username, email, password_hash, role, active, created_at, updated_at, timezone, locale FROM users WHERE username = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
@@ -103,12 +105,13 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Timezone,
+		&i.Locale,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, username, email, password_hash, role, active, created_at, updated_at, timezone FROM users ORDER BY username LIMIT $1 OFFSET $2
+SELECT id, username, email, password_hash, role, active, created_at, updated_at, timezone, locale FROM users ORDER BY username LIMIT $1 OFFSET $2
 `
 
 type ListUsersParams struct {
@@ -135,6 +138,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Timezone,
+			&i.Locale,
 		); err != nil {
 			return nil, err
 		}
@@ -150,8 +154,8 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 }
 
 const updateUser = `-- name: UpdateUser :exec
-UPDATE users SET email = $1, role = $2, active = $3, timezone = $4, updated_at = CURRENT_TIMESTAMP
-WHERE id = $5
+UPDATE users SET email = $1, role = $2, active = $3, timezone = $4, locale = $5, updated_at = CURRENT_TIMESTAMP
+WHERE id = $6
 `
 
 type UpdateUserParams struct {
@@ -159,6 +163,7 @@ type UpdateUserParams struct {
 	Role     string
 	Active   int64
 	Timezone string
+	Locale   string
 	ID       int64
 }
 
@@ -168,6 +173,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 		arg.Role,
 		arg.Active,
 		arg.Timezone,
+		arg.Locale,
 		arg.ID,
 	)
 	return err

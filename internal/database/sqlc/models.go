@@ -135,6 +135,7 @@ type User struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	Timezone     string
+	Locale       string
 }
 
 type UserRole struct {

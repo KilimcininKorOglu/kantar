@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
 import { Scale, AlertCircle } from 'lucide-react'
 
@@ -10,6 +11,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -24,15 +26,15 @@ export default function Login() {
       })
 
       if (!res.ok) {
-        setError('Invalid username or password')
+        setError(t('login.invalidCredentials'))
         return
       }
 
       const data = await res.json()
-      login(data.token, data.user || { id: 1, username, email: '', role: 'super_admin', active: true, timezone: 'UTC', createdAt: '', updatedAt: '' })
+      login(data.token, data.user || { id: 1, username, email: '', role: 'super_admin', active: true, timezone: 'UTC', locale: 'en', createdAt: '', updatedAt: '' })
       navigate('/')
     } catch {
-      setError('Connection error. Is the server running?')
+      setError(t('login.connectionError'))
     } finally {
       setLoading(false)
     }
@@ -46,7 +48,7 @@ export default function Login() {
             <Scale className="w-7 h-7 text-accent" />
             <h1 className="text-2xl font-bold text-text tracking-tight">Kantar</h1>
           </div>
-          <p className="text-text-dim text-xs tracking-wide italic">Trust nothing. Approve everything.</p>
+          <p className="text-text-dim text-xs tracking-wide italic">{t('login.tagline')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-lg p-6 space-y-4">
@@ -58,7 +60,7 @@ export default function Login() {
           )}
 
           <div>
-            <label htmlFor="username" className="block text-xs font-medium text-text-muted mb-1.5">Username</label>
+            <label htmlFor="username" className="block text-xs font-medium text-text-muted mb-1.5">{t('login.username')}</label>
             <input
               id="username"
               type="text"
@@ -71,7 +73,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-xs font-medium text-text-muted mb-1.5">Password</label>
+            <label htmlFor="password" className="block text-xs font-medium text-text-muted mb-1.5">{t('login.password')}</label>
             <input
               id="password"
               type="password"
@@ -87,7 +89,7 @@ export default function Login() {
             disabled={loading}
             className="w-full bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-medium rounded py-2.5 cursor-pointer"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? t('login.signingIn') : t('login.signIn')}
           </button>
         </form>
       </div>

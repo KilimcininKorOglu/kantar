@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
 import type { SystemStatus } from '../api/types'
 import { useAuth } from '../hooks/useAuth'
 import { getTimezone, setTimezone as setTz, getTimezoneList } from '../utils/date'
-import { Cpu, HardDrive, Activity, Clock, Globe, Pencil, Check, X } from 'lucide-react'
+import { setLocale, getLocale, supportedLocales } from '../i18n'
+import { Cpu, HardDrive, Activity, Clock, Globe, Languages, Pencil, Check, X } from 'lucide-react'
 
 interface Setting {
   key: string; value: string; category: string; description: string; updatedAt: string
 }
 
 export default function Settings() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [settings, setSettings] = useState<Setting[]>([])
@@ -17,6 +20,7 @@ export default function Settings() {
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
   const [timezone, setTimezone] = useState(getTimezone())
+  const [locale, setLang] = useState(getLocale())
 
   useEffect(() => {
     api.get<SystemStatus>('/system/status').then(setStatus).catch(() => {})
@@ -40,11 +44,16 @@ export default function Settings() {
     if (user) { try { await api.put(`/users/${user.id}`, { timezone: tz }) } catch {} }
   }
 
+  const handleLocaleChange = async (lng: string) => {
+    setLang(lng); setLocale(lng)
+    if (user) { try { await api.put(`/users/${user.id}`, { locale: lng }) } catch {} }
+  }
+
   return (
     <div className="space-y-5">
       {/* System Info */}
       <div className="bg-surface border border-border rounded p-4">
-        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-4">System Information</h3>
+        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-4">{t('settings.systemInfo')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <SysInfo icon={Activity} label="Status" value={status?.status || '—'} />
           <SysInfo icon={Clock} label="Uptime" value={status?.uptime || '—'} />
@@ -53,21 +62,36 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Timezone */}
+      {/* Display Preferences */}
       <div className="bg-surface border border-border rounded p-4">
-        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">Display</h3>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Globe className="w-3.5 h-3.5 text-text-dim" />
-            <div>
-              <div className="text-xs text-text">Timezone</div>
-              <div className="text-[10px] text-text-dim">All dates displayed in this timezone</div>
+        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">{t('settings.display')}</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Globe className="w-3.5 h-3.5 text-text-dim" />
+              <div>
+                <div className="text-xs text-text">{t('settings.timezone')}</div>
+                <div className="text-[10px] text-text-dim">{t('settings.timezoneDesc')}</div>
+              </div>
             </div>
+            <select value={timezone} onChange={e => handleTimezoneChange(e.target.value)}
+              className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text w-56">
+              {getTimezoneList().map(tz => <option key={tz} value={tz}>{tz}</option>)}
+            </select>
           </div>
-          <select value={timezone} onChange={e => handleTimezoneChange(e.target.value)}
-            className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text w-56">
-            {getTimezoneList().map(tz => <option key={tz} value={tz}>{tz}</option>)}
-          </select>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Languages className="w-3.5 h-3.5 text-text-dim" />
+              <div>
+                <div className="text-xs text-text">{t('settings.language')}</div>
+                <div className="text-[10px] text-text-dim">{t('settings.languageDesc')}</div>
+              </div>
+            </div>
+            <select value={locale} onChange={e => handleLocaleChange(e.target.value)}
+              className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text w-56">
+              {supportedLocales.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 
