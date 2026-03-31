@@ -254,4 +254,4 @@ kantar serve --config kantar.toml
 
 ## License
 
-This project is proprietary software.
+This project is licensed under the [MIT License](LICENSE).
