@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
 import type { SystemStatus, AuditLogEntry } from '../api/types'
 import { formatDateTime } from '../utils/date'
@@ -7,6 +8,7 @@ import { Activity, Cpu, HardDrive, Box, AlertTriangle, Download, Timer } from 'l
 const ecosystems = ['Docker', 'npm', 'PyPI', 'Go Mod', 'Cargo', 'Maven', 'NuGet', 'Helm']
 
 export default function Dashboard() {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [recentActivity, setRecentActivity] = useState<AuditLogEntry[]>([])
 
@@ -25,61 +27,53 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Box} label="Packages" value="—" sub="total" />
-        <StatCard icon={AlertTriangle} label="Pending" value="—" sub="awaiting approval" />
-        <StatCard icon={Download} label="Downloads" value="—" sub="today" />
-        <StatCard icon={Timer} label="Uptime" value={status?.uptime || '—'} sub={status?.status || 'loading'} />
+        <StatCard icon={Box} label={t('dashboard.packages')} value="—" sub={t('dashboard.total')} />
+        <StatCard icon={AlertTriangle} label={t('dashboard.pending')} value="—" sub={t('dashboard.awaitingApproval')} />
+        <StatCard icon={Download} label={t('dashboard.downloads')} value="—" sub={t('dashboard.today')} />
+        <StatCard icon={Timer} label={t('dashboard.uptime')} value={status?.uptime || '—'} sub={status?.status || t('dashboard.loadingStatus')} />
       </div>
 
-      {/* Registry Health */}
       <div>
-        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">Registry Health</h3>
+        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">{t('dashboard.registryHealth')}</h3>
         <div className="grid grid-cols-4 lg:grid-cols-8 gap-2">
           {ecosystems.map((eco) => (
             <div key={eco} className="bg-surface border border-border rounded px-3 py-2.5 text-center">
               <div className="text-[11px] text-text-dim mb-1">{eco}</div>
               <div className="flex items-center justify-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                <span className="text-xs font-medium text-text">OK</span>
+                <span className="text-xs font-medium text-text">{t('dashboard.ok')}</span>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Pending Approvals */}
       <div>
-        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">Pending Approvals</h3>
+        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">{t('dashboard.pendingApprovals')}</h3>
         <div className="bg-surface border border-border rounded overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-text-dim">
-                <th className="text-left px-4 py-2.5 text-xs font-medium">Package</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium">Version</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium">Registry</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium">Requested By</th>
-                <th className="text-right px-4 py-2.5 text-xs font-medium">Actions</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium">{t('dashboard.package')}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium">{t('dashboard.version')}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium">{t('dashboard.registry')}</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium">{t('dashboard.requestedBy')}</th>
+                <th className="text-right px-4 py-2.5 text-xs font-medium">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-text-dim text-xs">
-                  No pending approvals
-                </td>
-              </tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-text-dim text-xs">{t('dashboard.noPendingApprovals')}</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Recent Activity */}
       <div>
-        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">Recent Activity</h3>
+        <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">{t('dashboard.recentActivity')}</h3>
         <div className="bg-surface border border-border rounded p-4">
           {recentActivity.length === 0 ? (
-            <p className="text-xs text-text-dim text-center py-4">No recent activity</p>
+            <p className="text-xs text-text-dim text-center py-4">{t('dashboard.noRecentActivity')}</p>
           ) : (
             <div className="space-y-1">
               {recentActivity.map((a) => (
@@ -97,31 +91,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* System */}
       {status && (
         <div>
-          <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">System</h3>
+          <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">{t('dashboard.system')}</h3>
           <div className="bg-surface border border-border rounded p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div className="flex items-center gap-2">
-              <Cpu className="w-3.5 h-3.5 text-text-dim" />
-              <span className="text-text-muted">Go:</span>
-              <span className="text-text font-mono">{status.goVersion}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Cpu className="w-3.5 h-3.5 text-text-dim" />
-              <span className="text-text-muted">CPUs:</span>
-              <span className="text-text font-mono">{status.numCpu}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Activity className="w-3.5 h-3.5 text-text-dim" />
-              <span className="text-text-muted">Goroutines:</span>
-              <span className="text-text font-mono">{status.goroutines}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <HardDrive className="w-3.5 h-3.5 text-text-dim" />
-              <span className="text-text-muted">Memory:</span>
-              <span className="text-text font-mono">{(status.memory.allocBytes / 1048576).toFixed(1)} MB</span>
-            </div>
+            <div className="flex items-center gap-2"><Cpu className="w-3.5 h-3.5 text-text-dim" /><span className="text-text-muted">Go:</span><span className="text-text font-mono">{status.goVersion}</span></div>
+            <div className="flex items-center gap-2"><Cpu className="w-3.5 h-3.5 text-text-dim" /><span className="text-text-muted">CPUs:</span><span className="text-text font-mono">{status.numCpu}</span></div>
+            <div className="flex items-center gap-2"><Activity className="w-3.5 h-3.5 text-text-dim" /><span className="text-text-muted">Goroutines:</span><span className="text-text font-mono">{status.goroutines}</span></div>
+            <div className="flex items-center gap-2"><HardDrive className="w-3.5 h-3.5 text-text-dim" /><span className="text-text-muted">Memory:</span><span className="text-text font-mono">{(status.memory.allocBytes / 1048576).toFixed(1)} MB</span></div>
           </div>
         </div>
       )}

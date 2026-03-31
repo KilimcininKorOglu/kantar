@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
 import type { Package } from '../api/types'
 import { Search } from 'lucide-react'
@@ -7,6 +8,7 @@ import { Search } from 'lucide-react'
 const registries = ['docker', 'npm', 'pypi', 'gomod', 'cargo', 'maven', 'nuget', 'helm']
 
 export default function PackageList() {
+  const { t } = useTranslation()
   const [activeRegistry, setActiveRegistry] = useState('npm')
   const [search, setSearch] = useState('')
   const [packages, setPackages] = useState<Package[]>([])
@@ -26,12 +28,11 @@ export default function PackageList() {
         <div />
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-dim" />
-          <input type="text" placeholder="Search packages..." value={search} onChange={(e) => setSearch(e.target.value)}
+          <input type="text" placeholder={t('packages.searchPackages')} value={search} onChange={(e) => setSearch(e.target.value)}
             className="bg-surface-2 border border-border rounded pl-9 pr-3 py-1.5 text-xs text-text w-56 focus:outline-none focus:border-accent" />
         </div>
       </div>
 
-      {/* Registry Tabs */}
       <div className="flex gap-0.5 bg-surface border border-border rounded p-0.5">
         {registries.map((reg) => (
           <button key={reg} onClick={() => setActiveRegistry(reg)}
@@ -41,25 +42,24 @@ export default function PackageList() {
         ))}
       </div>
 
-      {/* Table */}
       <div className="bg-surface border border-border rounded overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-text-dim">
-              <th className="text-left px-4 py-2.5 text-xs font-medium">Name</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium">Status</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium">License</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium">Requested By</th>
-              <th className="text-right px-4 py-2.5 text-xs font-medium">Actions</th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium">{t('common.name')}</th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium">{t('common.status')}</th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium">{t('packages.license')}</th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium">{t('packages.requestedBy')}</th>
+              <th className="text-right px-4 py-2.5 text-xs font-medium">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="px-4 py-10 text-center text-text-dim text-xs">Loading...</td></tr>
+              <tr><td colSpan={5} className="px-4 py-10 text-center text-text-dim text-xs">{t('common.loading')}</td></tr>
             ) : packages.length === 0 ? (
               <tr><td colSpan={5} className="px-4 py-10 text-center text-text-dim text-xs">
-                No packages in <span className="text-text-muted font-mono">{activeRegistry}</span>
-                {search && <> matching "<span className="text-text-muted">{search}</span>"</>}
+                {t('packages.noPackagesIn', { registry: activeRegistry })}
+                {search && <> {t('packages.matching', { search })}</>}
               </td></tr>
             ) : packages.map((pkg) => (
               <tr key={pkg.id} className="border-b border-border last:border-0">
@@ -70,7 +70,7 @@ export default function PackageList() {
                 <td className="px-4 py-2.5 text-xs text-text-muted font-mono">{pkg.license || '—'}</td>
                 <td className="px-4 py-2.5 text-xs text-text-muted">{pkg.requestedBy || '—'}</td>
                 <td className="px-4 py-2.5 text-right">
-                  <Link to={`/packages/${pkg.registryType}/${pkg.name}`} className="text-[11px] text-text-dim hover:text-accent">View</Link>
+                  <Link to={`/packages/${pkg.registryType}/${pkg.name}`} className="text-[11px] text-text-dim hover:text-accent">{t('common.view')}</Link>
                 </td>
               </tr>
             ))}

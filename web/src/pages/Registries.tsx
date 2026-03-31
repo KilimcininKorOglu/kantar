@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
 import { Pencil, X } from 'lucide-react'
 
@@ -14,6 +15,7 @@ const ecoNames: Record<string, string> = {
 }
 
 export default function Registries() {
+  const { t } = useTranslation()
   const [registries, setRegistries] = useState<RegistryInfo[]>([])
   const [editing, setEditing] = useState<string | null>(null)
   const [editData, setEditData] = useState<Partial<RegistryInfo>>({})
@@ -48,31 +50,31 @@ export default function Registries() {
             {editing === reg.ecosystem ? (
               <div className="space-y-2">
                 <div>
-                  <label className="text-[10px] text-text-dim uppercase">Mode</label>
+                  <label className="text-[10px] text-text-dim uppercase">{t('common.mode')}</label>
                   <select value={editData.mode || reg.mode} onChange={e => setEditData({ ...editData, mode: e.target.value })}
                     className="w-full bg-surface-2 border border-border rounded px-2 py-1 text-xs text-text">
-                    <option value="allowlist">allowlist</option><option value="mirror">mirror</option>
+                    <option value="allowlist">{t('registries.allowlist')}</option><option value="mirror">{t('registries.mirror')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-text-dim uppercase">Upstream</label>
+                  <label className="text-[10px] text-text-dim uppercase">{t('common.upstream')}</label>
                   <input value={editData.upstream ?? reg.upstream} onChange={e => setEditData({ ...editData, upstream: e.target.value })}
                     className="w-full bg-surface-2 border border-border rounded px-2 py-1 text-xs text-text focus:outline-none focus:border-accent" />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => handleSave(reg.ecosystem)} disabled={saving} className="px-3 py-1 bg-accent hover:bg-accent-hover text-white text-[11px] rounded cursor-pointer">Save</button>
+                  <button onClick={() => handleSave(reg.ecosystem)} disabled={saving} className="px-3 py-1 bg-accent hover:bg-accent-hover text-white text-[11px] rounded cursor-pointer">{t('common.save')}</button>
                   <button onClick={() => setEditing(null)} className="px-3 py-1 bg-surface-2 text-text-muted text-[11px] rounded cursor-pointer"><X className="w-3 h-3 inline" /></button>
                 </div>
               </div>
             ) : (
               <>
                 <div className="space-y-1.5 text-xs">
-                  <div className="flex justify-between"><span className="text-text-dim">Mode</span><span className="text-text font-mono">{reg.mode}</span></div>
-                  <div className="flex justify-between"><span className="text-text-dim">Upstream</span><span className="text-text-muted font-mono text-[11px] truncate ml-2 max-w-[140px]">{reg.upstream || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-text-dim">{t('common.mode')}</span><span className="text-text font-mono">{reg.mode}</span></div>
+                  <div className="flex justify-between"><span className="text-text-dim">{t('common.upstream')}</span><span className="text-text-muted font-mono text-[11px] truncate ml-2 max-w-[140px]">{reg.upstream || '—'}</span></div>
                 </div>
                 <button onClick={() => { setEditing(reg.ecosystem); setEditData({}) }}
                   className="flex items-center gap-1 mt-3 w-full justify-center py-1.5 bg-surface-2 border border-border text-text-muted text-[11px] rounded cursor-pointer">
-                  <Pencil className="w-3 h-3" /> Edit
+                  <Pencil className="w-3 h-3" /> {t('common.edit')}
                 </button>
               </>
             )}
