@@ -24,6 +24,7 @@ export default function PackageDetail() {
 
   const handleApprove = async () => {
     if (!pkg) return
+    setError('')
     setActionLoading(true)
     try { await api.post(`/packages/${pkg.id}/approve`); loadPackage() }
     catch { setError(t('packageDetail.failedToApprove')) }
@@ -34,6 +35,7 @@ export default function PackageDetail() {
     if (!pkg) return
     const reason = prompt(t('packageDetail.blockReason'))
     if (!reason) return
+    setError('')
     setActionLoading(true)
     try { await api.post(`/packages/${pkg.id}/block`, { reason }); loadPackage() }
     catch { setError(t('packageDetail.failedToBlock')) }
