@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -14,6 +15,7 @@ import (
 	"github.com/KilimcininKorOglu/kantar/internal/audit"
 	"github.com/KilimcininKorOglu/kantar/internal/auth"
 	"github.com/KilimcininKorOglu/kantar/internal/database/sqlc"
+	"github.com/KilimcininKorOglu/kantar/internal/policy"
 	syncp "github.com/KilimcininKorOglu/kantar/internal/sync"
 	"github.com/KilimcininKorOglu/kantar/pkg/registry"
 )
@@ -215,13 +217,51 @@ func (s *Server) handleApprovePackage(w http.ResponseWriter, r *http.Request) {
 		approvedBy = claims.Username
 	}
 
+	// Evaluate policies before approval
+	pkg, err := s.deps.Queries.GetPackageByID(r.Context(), id)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "package not found")
+		return
+	}
+
+	dbPolicies, _ := s.deps.Queries.ListPolicies(r.Context())
+	if len(dbPolicies) > 0 {
+		policyEngine := policy.BuildFromDB(dbPolicies)
+		pkgInfo := &policy.PackageInfo{
+			Name:    pkg.Name,
+			License: pkg.License,
+		}
+
+		// Enrich with version data if available
+		versions, _ := s.deps.Queries.ListPackageVersions(r.Context(), sqlc.ListPackageVersionsParams{
+			PackageID: pkg.ID, Limit: 1, Offset: 0,
+		})
+		if len(versions) > 0 {
+			v := versions[0]
+			pkgInfo.Version = v.Version
+			pkgInfo.Size = v.Size
+			pkgInfo.Deprecated = v.Deprecated == 1
+			pkgInfo.PreRelease = strings.Contains(v.Version, "-")
+			pkgInfo.PublishedAt = v.CreatedAt
+		}
+
+		result := policyEngine.Evaluate(r.Context(), pkgInfo)
+		if !result.Allowed {
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
+				"error":      "policy violation",
+				"violations": result.Violations,
+			})
+			return
+		}
+	}
+
 	if err := s.deps.Manager.ApprovePackage(r.Context(), id, approvedBy); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to approve package")
 		return
 	}
 
 	// Invalidate cached package data
-	if pkg, pkgErr := s.deps.Queries.GetPackageByID(r.Context(), id); pkgErr == nil {
+	{
 		s.cacheInvalidatePackage(r.Context(), id, pkg.RegistryType, pkg.Name)
 	}
 

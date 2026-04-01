@@ -4,8 +4,14 @@ package policy
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/BurntSushi/toml"
+
+	"github.com/KilimcininKorOglu/kantar/internal/database/sqlc"
+	"github.com/KilimcininKorOglu/kantar/internal/util"
 )
 
 // Action defines what happens when a policy is violated.
@@ -87,6 +93,118 @@ func (e *Engine) Evaluate(ctx context.Context, pkg *PackageInfo) *Result {
 	}
 
 	return result
+}
+
+// BuildFromDB creates a configured Engine from database policy rows.
+// Only enabled policies are registered. TOML config is parsed into concrete policy structs.
+func BuildFromDB(policies []sqlc.Policy) *Engine {
+	engine := NewEngine()
+	for _, p := range policies {
+		if p.Enabled != 1 {
+			continue
+		}
+		var config map[string]any
+		if _, err := toml.Decode(p.ConfigToml, &config); err != nil {
+			continue
+		}
+
+		switch p.Name {
+		case "license":
+			engine.Register(buildLicensePolicy(config))
+		case "size":
+			engine.Register(buildSizePolicy(config))
+		case "age":
+			engine.Register(buildAgePolicy(config))
+		case "version":
+			engine.Register(buildVersionPolicy(config))
+		}
+	}
+	return engine
+}
+
+func buildLicensePolicy(config map[string]any) *LicensePolicy {
+	p := &LicensePolicy{Action: ActionBlock}
+	if a, ok := config["action"].(string); ok {
+		p.Action = Action(a)
+	}
+	if allowed, ok := config["allowed"].([]any); ok {
+		for _, v := range allowed {
+			if s, ok := v.(string); ok {
+				p.Allowed = append(p.Allowed, s)
+			}
+		}
+	}
+	if blocked, ok := config["blocked"].([]any); ok {
+		for _, v := range blocked {
+			if s, ok := v.(string); ok {
+				p.Blocked = append(p.Blocked, s)
+			}
+		}
+	}
+	return p
+}
+
+func buildSizePolicy(config map[string]any) *SizePolicy {
+	p := &SizePolicy{Action: ActionBlock}
+	if a, ok := config["action"].(string); ok {
+		p.Action = Action(a)
+	}
+	if s, ok := config["max_package_size"].(string); ok {
+		if size, err := util.ParseSize(s); err == nil {
+			p.MaxPackageSize = size
+		}
+	}
+	if n, ok := config["max_layer_count"].(int64); ok {
+		p.MaxLayerCount = int(n)
+	}
+	return p
+}
+
+func buildAgePolicy(config map[string]any) *AgePolicy {
+	p := &AgePolicy{Action: ActionBlock}
+	if a, ok := config["action"].(string); ok {
+		p.Action = Action(a)
+	}
+	if s, ok := config["min_package_age"].(string); ok {
+		p.MinPackageAge = parseDuration(s)
+	}
+	if n, ok := config["min_maintainers"].(int64); ok {
+		p.MinMaintainers = int(n)
+	}
+	return p
+}
+
+func buildVersionPolicy(config map[string]any) *VersionPolicy {
+	p := &VersionPolicy{Action: ActionBlock}
+	if a, ok := config["action"].(string); ok {
+		p.Action = Action(a)
+	}
+	if v, ok := config["allow_prerelease"].(bool); ok {
+		p.AllowPreRelease = v
+	}
+	if v, ok := config["allow_deprecated"].(bool); ok {
+		p.AllowDeprecated = v
+	}
+	return p
+}
+
+// parseDuration extends time.ParseDuration with support for "d" (days) and "w" (weeks).
+func parseDuration(s string) time.Duration {
+	if d, err := time.ParseDuration(s); err == nil {
+		return d
+	}
+	s = strings.TrimSpace(s)
+	if strings.HasSuffix(s, "d") {
+		if n, err := strconv.Atoi(s[:len(s)-1]); err == nil {
+			return time.Duration(n) * 24 * time.Hour
+		}
+	}
+	if strings.HasSuffix(s, "w") {
+		if n, err := strconv.Atoi(s[:len(s)-1]); err == nil {
+			return time.Duration(n) * 7 * 24 * time.Hour
+		}
+	}
+	return 0
 }
 
 // --- License Policy ---
