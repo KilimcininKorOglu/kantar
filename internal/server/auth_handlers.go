@@ -97,6 +97,7 @@ type userResponse struct {
 	Timezone  string    `json:"timezone"`
 	Locale    string    `json:"locale"`
 	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 func toUserResponse(u sqlc.User) userResponse {
@@ -108,6 +109,7 @@ func toUserResponse(u sqlc.User) userResponse {
 		Timezone:  u.Timezone,
 		Locale:    u.Locale,
 		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
 	}
 	if u.Email.Valid {
 		resp.Email = u.Email.String

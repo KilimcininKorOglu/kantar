@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
+import type { RegistryInfo } from '../api/types'
 import { Pencil, X } from 'lucide-react'
-
-interface RegistryInfo {
-  id: number; ecosystem: string; mode: string; upstream: string
-  autoSync: boolean; autoSyncInterval: string; maxVersions: number
-  enabled: boolean; createdAt: string; updatedAt: string
-}
 
 const ecoNames: Record<string, string> = {
   docker: 'Docker', npm: 'npm', pypi: 'PyPI', gomod: 'Go Modules',

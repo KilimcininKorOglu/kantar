@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
-import type { Package } from '../api/types'
+import type { Package, PackageVersion } from '../api/types'
 import { formatDate } from '../utils/date'
 import { ArrowLeft, Check, Ban } from 'lucide-react'
 
@@ -10,6 +10,7 @@ export default function PackageDetail() {
   const { t } = useTranslation()
   const { registry, name } = useParams()
   const [pkg, setPkg] = useState<Package | null>(null)
+  const [versions, setVersions] = useState<PackageVersion[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
@@ -17,7 +18,12 @@ export default function PackageDetail() {
   const loadPackage = useCallback(() => {
     setLoading(true)
     api.get<Package>(`/packages/by-name/${registry}/${encodeURIComponent(name!)}`)
-      .then(setPkg).catch(() => setError(t('packageDetail.packageNotFound'))).finally(() => setLoading(false))
+      .then((p) => {
+        setPkg(p)
+        api.get<PackageVersion[]>(`/packages/${p.id}/versions`).then(setVersions).catch(() => {})
+      })
+      .catch(() => setError(t('packageDetail.packageNotFound')))
+      .finally(() => setLoading(false))
   }, [registry, name, t])
 
   useEffect(() => { loadPackage() }, [loadPackage])
@@ -96,6 +102,36 @@ export default function PackageDetail() {
         <div className="bg-surface border border-border rounded p-4">
           <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-2">{t('packageDetail.description')}</h3>
           <p className="text-xs text-text-muted">{pkg.description}</p>
+        </div>
+      )}
+
+      {versions.length > 0 && (
+        <div className="bg-surface border border-border rounded p-4">
+          <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">{t('packageDetail.versions')}</h3>
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left text-[10px] text-text-dim uppercase px-3 py-2">{t('dashboard.version')}</th>
+                <th className="text-left text-[10px] text-text-dim uppercase px-3 py-2">{t('packageDetail.size')}</th>
+                <th className="text-left text-[10px] text-text-dim uppercase px-3 py-2">{t('common.status')}</th>
+                <th className="text-left text-[10px] text-text-dim uppercase px-3 py-2">{t('packageDetail.created')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {versions.map(v => (
+                <tr key={v.id} className="border-b border-border last:border-0">
+                  <td className="px-3 py-2 text-xs text-text font-mono">{v.version}</td>
+                  <td className="px-3 py-2 text-xs text-text-muted">{v.size > 0 ? `${(v.size / 1024).toFixed(1)} KB` : '—'}</td>
+                  <td className="px-3 py-2 text-xs">
+                    {v.deprecated && <span className="text-warning">deprecated</span>}
+                    {v.yanked && <span className="text-danger">yanked</span>}
+                    {!v.deprecated && !v.yanked && <span className="text-success">ok</span>}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-text-muted">{formatDate(v.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

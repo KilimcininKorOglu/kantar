@@ -88,16 +88,20 @@ func (s *Server) handleListPackages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	registry := r.URL.Query().Get("registry")
+	reg := r.URL.Query().Get("registry")
 	status := r.URL.Query().Get("status")
 	search := r.URL.Query().Get("search")
-	limit, _ := strconv.ParseInt(r.URL.Query().Get("limit"), 10, 64)
-	offset, _ := strconv.ParseInt(r.URL.Query().Get("offset"), 10, 64)
-	if limit <= 0 || limit > 100 {
-		limit = 50
+	page, _ := strconv.ParseInt(r.URL.Query().Get("page"), 10, 64)
+	perPage, _ := strconv.ParseInt(r.URL.Query().Get("perPage"), 10, 64)
+	if page <= 0 {
+		page = 1
 	}
-	if registry == "" {
-		registry = "npm"
+	if perPage <= 0 || perPage > 100 {
+		perPage = 50
+	}
+	offset := (page - 1) * perPage
+	if reg == "" {
+		reg = "npm"
 	}
 
 	var pkgs []sqlc.Package
@@ -106,22 +110,22 @@ func (s *Server) handleListPackages(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case search != "":
 		pkgs, err = s.deps.Queries.SearchPackages(r.Context(), sqlc.SearchPackagesParams{
-			RegistryType: registry,
+			RegistryType: reg,
 			Name:         "%" + search + "%",
-			Limit:        limit,
+			Limit:        perPage,
 			Offset:       offset,
 		})
 	case status != "":
 		pkgs, err = s.deps.Queries.ListPackagesByStatus(r.Context(), sqlc.ListPackagesByStatusParams{
-			RegistryType: registry,
+			RegistryType: reg,
 			Status:       status,
-			Limit:        limit,
+			Limit:        perPage,
 			Offset:       offset,
 		})
 	default:
 		pkgs, err = s.deps.Queries.ListPackages(r.Context(), sqlc.ListPackagesParams{
-			RegistryType: registry,
-			Limit:        limit,
+			RegistryType: reg,
+			Limit:        perPage,
 			Offset:       offset,
 		})
 	}
@@ -131,12 +135,19 @@ func (s *Server) handleListPackages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	total, _ := s.deps.Queries.CountPackages(r.Context(), reg)
+
 	resp := make([]packageResponse, len(pkgs))
 	for i, p := range pkgs {
 		resp[i] = toPackageResponse(p)
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	writeJSON(w, http.StatusOK, paginatedResponse{
+		Data:    resp,
+		Total:   total,
+		Page:    page,
+		PerPage: perPage,
+	})
 }
 
 func (s *Server) handleGetPackageByName(w http.ResponseWriter, r *http.Request) {
@@ -341,4 +352,60 @@ func (s *Server) handleBlockPackage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "blocked"})
+}
+
+type packageVersionResponse struct {
+	ID             int64     `json:"id"`
+	PackageID      int64     `json:"packageId"`
+	Version        string    `json:"version"`
+	Size           int64     `json:"size"`
+	ChecksumSha256 string    `json:"checksumSha256"`
+	StoragePath    string    `json:"storagePath"`
+	Deprecated     bool      `json:"deprecated"`
+	Yanked         bool      `json:"yanked"`
+	SyncedAt       string    `json:"syncedAt,omitempty"`
+	CreatedAt      time.Time `json:"createdAt"`
+}
+
+func (s *Server) handleListPackageVersions(w http.ResponseWriter, r *http.Request) {
+	if s.deps.Queries == nil {
+		writeError(w, http.StatusServiceUnavailable, "service not ready")
+		return
+	}
+
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid package id")
+		return
+	}
+
+	versions, err := s.deps.Queries.ListPackageVersions(r.Context(), sqlc.ListPackageVersionsParams{
+		PackageID: id, Limit: 100, Offset: 0,
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to list versions")
+		return
+	}
+
+	resp := make([]packageVersionResponse, len(versions))
+	for i, v := range versions {
+		syncedAt := ""
+		if v.SyncedAt.Valid {
+			syncedAt = v.SyncedAt.Time.Format(time.RFC3339)
+		}
+		resp[i] = packageVersionResponse{
+			ID:             v.ID,
+			PackageID:      v.PackageID,
+			Version:        v.Version,
+			Size:           v.Size,
+			ChecksumSha256: v.ChecksumSha256,
+			StoragePath:    v.StoragePath,
+			Deprecated:     v.Deprecated == 1,
+			Yanked:         v.Yanked == 1,
+			SyncedAt:       syncedAt,
+			CreatedAt:      v.CreatedAt,
+		}
+	}
+
+	writeJSON(w, http.StatusOK, resp)
 }

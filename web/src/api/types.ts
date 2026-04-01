@@ -76,20 +76,21 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string
   expiresAt: string
   user: User
 }
 
 export interface RegistryInfo {
+  id: number
   ecosystem: string
   mode: string
   upstream: string
+  autoSync: boolean
+  autoSyncInterval: string
+  maxVersions: number
   enabled: boolean
-  packageCount: number
-  storageSize: number
-  lastSync: string
-  status: 'healthy' | 'degraded' | 'offline'
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PaginatedResponse<T> {

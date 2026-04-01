@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
+import type { LoginRequest, LoginResponse } from '../api/types'
 import { Scale, AlertCircle } from 'lucide-react'
 
 export default function Login() {
@@ -19,10 +20,11 @@ export default function Login() {
     setLoading(true)
 
     try {
+      const body: LoginRequest = { username, password }
       const res = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(body),
         credentials: 'include',
       })
 
@@ -31,7 +33,7 @@ export default function Login() {
         return
       }
 
-      const data = await res.json()
+      const data: LoginResponse = await res.json()
       if (!data.user) {
         setError(t('login.invalidCredentials'))
         return

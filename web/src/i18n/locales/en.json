@@ -83,6 +83,8 @@
   "packageDetail.created": "Created",
   "packageDetail.updated": "Updated",
   "packageDetail.description": "Description",
+  "packageDetail.versions": "Versions",
+  "packageDetail.size": "Size",
   "audit.csv": "CSV",
   "audit.json": "JSON",
   "audit.verify": "Verify",

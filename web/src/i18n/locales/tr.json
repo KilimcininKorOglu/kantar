@@ -83,6 +83,8 @@
   "packageDetail.created": "Oluşturulma",
   "packageDetail.updated": "Güncelleme",
   "packageDetail.description": "Açıklama",
+  "packageDetail.versions": "Sürümler",
+  "packageDetail.size": "Boyut",
   "audit.csv": "CSV",
   "audit.json": "JSON",
   "audit.verify": "Doğrula",

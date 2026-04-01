@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
-import type { Package } from '../api/types'
-import { Search } from 'lucide-react'
+import type { Package, PaginatedResponse } from '../api/types'
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const registries = ['docker', 'npm', 'pypi', 'gomod', 'cargo', 'maven', 'nuget', 'helm']
 
@@ -13,14 +13,21 @@ export default function PackageList() {
   const [search, setSearch] = useState('')
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const perPage = 50
 
   useEffect(() => {
     setLoading(true)
-    const params = new URLSearchParams({ registry: activeRegistry, limit: '100' })
+    const params = new URLSearchParams({ registry: activeRegistry, page: String(page), perPage: String(perPage) })
     if (search) params.set('search', search)
-    api.get<Package[]>(`/packages?${params}`)
-      .then(setPackages).catch(() => setPackages([])).finally(() => setLoading(false))
-  }, [activeRegistry, search])
+    api.get<PaginatedResponse<Package>>(`/packages?${params}`)
+      .then((res) => { setPackages(res.data as Package[]); setTotal(res.total) })
+      .catch(() => { setPackages([]); setTotal(0) })
+      .finally(() => setLoading(false))
+  }, [activeRegistry, search, page])
+
+  const totalPages = Math.max(1, Math.ceil(total / perPage))
 
   return (
     <div className="space-y-4">
@@ -35,7 +42,7 @@ export default function PackageList() {
 
       <div className="flex gap-0.5 bg-surface border border-border rounded p-0.5">
         {registries.map((reg) => (
-          <button key={reg} onClick={() => setActiveRegistry(reg)}
+          <button key={reg} onClick={() => { setActiveRegistry(reg); setPage(1) }}
             className={`px-3 py-1.5 text-[11px] font-medium rounded cursor-pointer ${
               activeRegistry === reg ? 'bg-accent text-white' : 'text-text-muted hover:text-text hover:bg-surface-2'
             }`}>{reg}</button>
@@ -76,6 +83,21 @@ export default function PackageList() {
             ))}
           </tbody>
         </table>
+        {total > perPage && (
+          <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
+            <span className="text-[11px] text-text-dim">{page} / {totalPages} ({total})</span>
+            <div className="flex gap-1">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
+                className="px-2 py-1 bg-surface-2 border border-border rounded text-text-muted text-[11px] disabled:opacity-30 cursor-pointer">
+                <ChevronLeft className="w-3 h-3" />
+              </button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
+                className="px-2 py-1 bg-surface-2 border border-border rounded text-text-muted text-[11px] disabled:opacity-30 cursor-pointer">
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
