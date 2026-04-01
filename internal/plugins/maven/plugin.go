@@ -125,26 +125,44 @@ func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange str
 		return nil, "", fmt.Errorf("maven requires explicit version for %s", name)
 	}
 
-	// Fetch POM
-	url := fmt.Sprintf("%s/%s/%s/%s/%s-%s.pom", upstream, groupPath, artifactID, version, artifactID, version)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, "", err
+	cacheKey := fmt.Sprintf("upstream:%s:%s@%s", p.Ecosystem(), name, version)
+
+	var data []byte
+
+	// Try cache first
+	if p.appCache != nil {
+		if cached, _ := p.appCache.Get(ctx, cacheKey); cached != nil {
+			data = cached
+		}
 	}
 
-	resp, err := mavenHTTPClient.Do(req)
-	if err != nil {
-		return nil, "", fmt.Errorf("fetching POM for %s:%s: %w", name, version, err)
-	}
-	defer resp.Body.Close()
+	if data == nil {
+		// Fetch POM from upstream
+		url := fmt.Sprintf("%s/%s/%s/%s/%s-%s.pom", upstream, groupPath, artifactID, version, artifactID, version)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, "", err
+		}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("upstream returned %d for %s POM", resp.StatusCode, name)
-	}
+		resp, err := mavenHTTPClient.Do(req)
+		if err != nil {
+			return nil, "", fmt.Errorf("fetching POM for %s:%s: %w", name, version, err)
+		}
+		defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, "", err
+		if resp.StatusCode != http.StatusOK {
+			return nil, "", fmt.Errorf("upstream returned %d for %s POM", resp.StatusCode, name)
+		}
+
+		var readErr error
+		data, readErr = io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, "", readErr
+		}
+
+		if p.appCache != nil {
+			p.appCache.Set(ctx, cacheKey, data, 5*time.Minute)
+		}
 	}
 
 	var pom pomProject

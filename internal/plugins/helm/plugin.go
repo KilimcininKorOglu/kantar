@@ -107,17 +107,35 @@ func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange str
 		return nil, "", fmt.Errorf("helm requires explicit version for %s", name)
 	}
 
-	// Read chart .tgz from storage
-	chartPath := fmt.Sprintf("helm/charts/%s/%s-%s.tgz", name, name, version)
-	reader, err := p.storage.Get(ctx, chartPath)
-	if err != nil {
-		return nil, "", fmt.Errorf("chart not found: %s@%s", name, version)
-	}
-	defer reader.Close()
+	cacheKey := fmt.Sprintf("upstream:%s:%s@%s", p.Ecosystem(), name, version)
 
-	chartYAML, err := extractChartYAML(reader, name)
-	if err != nil {
-		return nil, "", fmt.Errorf("reading Chart.yaml from %s@%s: %w", name, version, err)
+	var chartYAML string
+
+	// Try cache first
+	if p.appCache != nil {
+		if cached, _ := p.appCache.Get(ctx, cacheKey); cached != nil {
+			chartYAML = string(cached)
+		}
+	}
+
+	if chartYAML == "" {
+		// Read chart .tgz from storage
+		chartPath := fmt.Sprintf("helm/charts/%s/%s-%s.tgz", name, name, version)
+		reader, err := p.storage.Get(ctx, chartPath)
+		if err != nil {
+			return nil, "", fmt.Errorf("chart not found: %s@%s", name, version)
+		}
+		defer reader.Close()
+
+		var extractErr error
+		chartYAML, extractErr = extractChartYAML(reader, name)
+		if extractErr != nil {
+			return nil, "", fmt.Errorf("reading Chart.yaml from %s@%s: %w", name, version, extractErr)
+		}
+
+		if p.appCache != nil {
+			p.appCache.Set(ctx, cacheKey, []byte(chartYAML), 5*time.Minute)
+		}
 	}
 
 	deps := parseChartDependencies(chartYAML)

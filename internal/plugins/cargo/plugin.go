@@ -141,33 +141,51 @@ func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange str
 	upstream := p.config.Upstream
 	p.mu.RUnlock()
 
-	// Derive sparse index URL from configured upstream
-	indexBase := "https://index.crates.io"
-	if upstream != "" && upstream != "https://crates.io" {
-		indexBase = strings.TrimSuffix(upstream, "/")
+	cacheKey := fmt.Sprintf("upstream:%s:%s", p.Ecosystem(), name)
+
+	var data []byte
+
+	// Try cache first
+	if p.appCache != nil {
+		if cached, _ := p.appCache.Get(ctx, cacheKey); cached != nil {
+			data = cached
+		}
 	}
 
-	prefix := computePrefix(strings.ToLower(name))
-	url := fmt.Sprintf("%s/%s%s", indexBase, prefix, strings.ToLower(name))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, "", err
-	}
-	req.Header.Set("Accept", "application/json")
+	if data == nil {
+		// Derive sparse index URL from configured upstream
+		indexBase := "https://index.crates.io"
+		if upstream != "" && upstream != "https://crates.io" {
+			indexBase = strings.TrimSuffix(upstream, "/")
+		}
 
-	resp, err := cargoHTTPClient.Do(req)
-	if err != nil {
-		return nil, "", fmt.Errorf("fetching crate index for %s: %w", name, err)
-	}
-	defer resp.Body.Close()
+		prefix := computePrefix(strings.ToLower(name))
+		url := fmt.Sprintf("%s/%s%s", indexBase, prefix, strings.ToLower(name))
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, "", err
+		}
+		req.Header.Set("Accept", "application/json")
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("upstream returned %d for crate %s", resp.StatusCode, name)
-	}
+		resp, err := cargoHTTPClient.Do(req)
+		if err != nil {
+			return nil, "", fmt.Errorf("fetching crate index for %s: %w", name, err)
+		}
+		defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, "", err
+		if resp.StatusCode != http.StatusOK {
+			return nil, "", fmt.Errorf("upstream returned %d for crate %s", resp.StatusCode, name)
+		}
+
+		var readErr error
+		data, readErr = io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, "", readErr
+		}
+
+		if p.appCache != nil {
+			p.appCache.Set(ctx, cacheKey, data, 5*time.Minute)
+		}
 	}
 
 	// Parse JSON lines

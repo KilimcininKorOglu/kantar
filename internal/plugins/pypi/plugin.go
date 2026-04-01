@@ -163,9 +163,64 @@ func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange str
 		version = ""
 	}
 
-	pypiResp, err := p.fetchPyPIJSON(ctx, name, version)
-	if err != nil {
-		return nil, "", err
+	cacheKey := fmt.Sprintf("upstream:%s:%s", p.Ecosystem(), name)
+
+	var pypiResp *pypiJSONResponse
+
+	// Try cache first
+	if p.appCache != nil {
+		if cached, _ := p.appCache.Get(ctx, cacheKey); cached != nil {
+			var cr pypiJSONResponse
+			if json.Unmarshal(cached, &cr) == nil {
+				pypiResp = &cr
+			}
+		}
+	}
+
+	if pypiResp == nil {
+		p.mu.RLock()
+		upstream := p.config.Upstream
+		p.mu.RUnlock()
+		if upstream == "" {
+			upstream = "https://pypi.org"
+		}
+
+		var fetchURL string
+		if version != "" {
+			fetchURL = fmt.Sprintf("%s/pypi/%s/%s/json", upstream, name, version)
+		} else {
+			fetchURL = fmt.Sprintf("%s/pypi/%s/json", upstream, name)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fetchURL, nil)
+		if err != nil {
+			return nil, "", err
+		}
+
+		resp, err := pypiHTTPClient.Do(req)
+		if err != nil {
+			return nil, "", fmt.Errorf("fetching PyPI JSON for %s: %w", name, err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, "", fmt.Errorf("PyPI returned %d for %s", resp.StatusCode, name)
+		}
+
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if p.appCache != nil {
+			p.appCache.Set(ctx, cacheKey, bodyBytes, 5*time.Minute)
+		}
+
+		var result pypiJSONResponse
+		if err := json.Unmarshal(bodyBytes, &result); err != nil {
+			return nil, "", err
+		}
+		pypiResp = &result
 	}
 
 	resolvedVersion := pypiResp.Info.Version

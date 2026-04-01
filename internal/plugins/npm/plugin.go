@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/KilimcininKorOglu/kantar/internal/cache"
 	"github.com/KilimcininKorOglu/kantar/internal/storage"
@@ -130,9 +131,60 @@ func (p *Plugin) fetchPackument(ctx context.Context, name string) (*Packument, e
 // ResolveDependencies fetches the packument for name, resolves versionRange
 // to a concrete version, and returns the runtime dependencies of that version.
 func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {
-	packument, err := p.fetchPackument(ctx, name)
-	if err != nil {
-		return nil, "", err
+	cacheKey := fmt.Sprintf("upstream:%s:%s", p.Ecosystem(), name)
+
+	var packument *Packument
+
+	// Try cache first
+	if p.appCache != nil {
+		if cached, _ := p.appCache.Get(ctx, cacheKey); cached != nil {
+			var cp Packument
+			if json.Unmarshal(cached, &cp) == nil {
+				packument = &cp
+			}
+		}
+	}
+
+	if packument == nil {
+		// Fetch from upstream
+		p.mu.RLock()
+		upstream := p.config.Upstream
+		p.mu.RUnlock()
+		if upstream == "" {
+			upstream = "https://registry.npmjs.org"
+		}
+
+		url := fmt.Sprintf("%s/%s", upstream, name)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, "", fmt.Errorf("creating request for %s: %w", name, err)
+		}
+		req.Header.Set("Accept", "application/json")
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return nil, "", fmt.Errorf("fetching packument for %s: %w", name, err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, "", fmt.Errorf("upstream returned %d for %s", resp.StatusCode, name)
+		}
+
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, "", fmt.Errorf("reading packument body for %s: %w", name, err)
+		}
+
+		if p.appCache != nil {
+			p.appCache.Set(ctx, cacheKey, bodyBytes, 5*time.Minute)
+		}
+
+		var p2 Packument
+		if err := json.Unmarshal(bodyBytes, &p2); err != nil {
+			return nil, "", fmt.Errorf("decoding packument for %s: %w", name, err)
+		}
+		packument = &p2
 	}
 
 	// Collect all version strings

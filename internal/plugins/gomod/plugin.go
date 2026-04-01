@@ -124,29 +124,48 @@ func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange str
 		version = lines[len(lines)-1]
 	}
 
-	// Fetch go.mod
-	url := fmt.Sprintf("%s/%s/@v/%s.mod", upstream, name, version)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, "", err
+	// Cache the go.mod body for the resolved version
+	cacheKey := fmt.Sprintf("upstream:%s:%s@%s", p.Ecosystem(), name, version)
+
+	var modData []byte
+
+	// Try cache first
+	if p.appCache != nil {
+		if cached, _ := p.appCache.Get(ctx, cacheKey); cached != nil {
+			modData = cached
+		}
 	}
 
-	resp, err := gomodHTTPClient.Do(req)
-	if err != nil {
-		return nil, "", fmt.Errorf("fetching go.mod for %s@%s: %w", name, version, err)
-	}
-	defer resp.Body.Close()
+	if modData == nil {
+		// Fetch go.mod from upstream
+		url := fmt.Sprintf("%s/%s/@v/%s.mod", upstream, name, version)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, "", err
+		}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("upstream returned %d for %s@%s.mod", resp.StatusCode, name, version)
+		resp, err := gomodHTTPClient.Do(req)
+		if err != nil {
+			return nil, "", fmt.Errorf("fetching go.mod for %s@%s: %w", name, version, err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, "", fmt.Errorf("upstream returned %d for %s@%s.mod", resp.StatusCode, name, version)
+		}
+
+		var readErr error
+		modData, readErr = io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, "", readErr
+		}
+
+		if p.appCache != nil {
+			p.appCache.Set(ctx, cacheKey, modData, 5*time.Minute)
+		}
 	}
 
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, "", err
-	}
-
-	deps := parseGoMod(string(data))
+	deps := parseGoMod(string(modData))
 	return deps, version, nil
 }
 

@@ -108,28 +108,52 @@ func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange str
 		return nil, "", fmt.Errorf("NuGet requires explicit version for %s", name)
 	}
 
-	// NuGet registration API
-	url := fmt.Sprintf("https://api.nuget.org/v3/registration5-gz-semver2/%s/%s.json",
-		strings.ToLower(name), strings.ToLower(version))
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, "", err
-	}
-
-	resp, err := nugetHTTPClient.Do(req)
-	if err != nil {
-		return nil, "", fmt.Errorf("fetching NuGet registration for %s@%s: %w", name, version, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("NuGet returned %d for %s@%s", resp.StatusCode, name, version)
-	}
+	cacheKey := fmt.Sprintf("upstream:%s:%s@%s", p.Ecosystem(), name, version)
 
 	var regResp nugetRegistrationResponse
-	if err := json.NewDecoder(resp.Body).Decode(&regResp); err != nil {
-		return nil, "", err
+	parsed := false
+
+	// Try cache first
+	if p.appCache != nil {
+		if cached, _ := p.appCache.Get(ctx, cacheKey); cached != nil {
+			if json.Unmarshal(cached, &regResp) == nil {
+				parsed = true
+			}
+		}
+	}
+
+	if !parsed {
+		// NuGet registration API
+		url := fmt.Sprintf("https://api.nuget.org/v3/registration5-gz-semver2/%s/%s.json",
+			strings.ToLower(name), strings.ToLower(version))
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, "", err
+		}
+
+		resp, err := nugetHTTPClient.Do(req)
+		if err != nil {
+			return nil, "", fmt.Errorf("fetching NuGet registration for %s@%s: %w", name, version, err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, "", fmt.Errorf("NuGet returned %d for %s@%s", resp.StatusCode, name, version)
+		}
+
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if p.appCache != nil {
+			p.appCache.Set(ctx, cacheKey, bodyBytes, 5*time.Minute)
+		}
+
+		if err := json.Unmarshal(bodyBytes, &regResp); err != nil {
+			return nil, "", err
+		}
 	}
 
 	resolvedVersion := regResp.CatalogEntry.Version
