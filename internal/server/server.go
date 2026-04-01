@@ -130,6 +130,7 @@ func (s *Server) setupAPIRoutes(r chi.Router) {
 	// Public auth endpoints — no authentication required
 	r.Post("/auth/login", s.handleLogin)
 	r.Post("/auth/register", s.handleRegister)
+	r.Post("/auth/logout", s.handleLogout)
 
 	// Authenticated endpoints
 	r.Group(func(r chi.Router) {
@@ -142,6 +143,7 @@ func (s *Server) setupAPIRoutes(r chi.Router) {
 				auth.Middleware(s.deps.JWTManager)(next).ServeHTTP(w, r)
 			})
 		})
+		r.Use(csrfMiddleware)
 
 		r.Get("/system/status", s.handleSystemStatus)
 

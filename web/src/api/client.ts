@@ -7,22 +7,33 @@ class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem('kantar_token')
+function getCsrfToken(): string {
+  const match = document.cookie.match(/kantar_csrf=([^;]+)/)
+  return match ? match[1] : ''
+}
 
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {}),
   }
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+  // Add CSRF token for state-changing requests
+  const method = options.method?.toUpperCase() || 'GET'
+  if (method !== 'GET' && method !== 'HEAD') {
+    const csrf = getCsrfToken()
+    if (csrf) {
+      headers['X-CSRF-Token'] = csrf
+    }
   }
 
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers,
+    credentials: 'include',
+  })
 
   if (response.status === 401) {
-    localStorage.removeItem('kantar_token')
     localStorage.removeItem('kantar_user')
     window.location.href = '/login'
     throw new ApiError(401, 'Unauthorized')

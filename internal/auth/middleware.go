@@ -56,10 +56,15 @@ func ClaimsFromContext(ctx context.Context) *Claims {
 }
 
 func extractToken(r *http.Request) string {
-	// Bearer token from Authorization header only
+	// Bearer token from Authorization header (CLI/API clients)
 	auth := r.Header.Get("Authorization")
 	if strings.HasPrefix(auth, "Bearer ") {
 		return strings.TrimPrefix(auth, "Bearer ")
+	}
+
+	// Fallback: HttpOnly cookie (browser requests)
+	if c, err := r.Cookie("kantar_token"); err == nil && c.Value != "" {
+		return c.Value
 	}
 
 	return ""

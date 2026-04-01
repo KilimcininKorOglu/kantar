@@ -139,5 +139,6 @@ func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	clearAuthCookies(w)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "password changed"})
 }

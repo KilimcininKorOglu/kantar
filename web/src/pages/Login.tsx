@@ -23,6 +23,7 @@ export default function Login() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
+        credentials: 'include',
       })
 
       if (!res.ok) {
@@ -31,11 +32,11 @@ export default function Login() {
       }
 
       const data = await res.json()
-      if (!data.token || !data.user) {
+      if (!data.user) {
         setError(t('login.invalidCredentials'))
         return
       }
-      login(data.token, data.user)
+      login(data.user)
       navigate('/')
     } catch {
       setError(t('login.connectionError'))

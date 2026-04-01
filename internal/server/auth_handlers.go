@@ -17,7 +17,6 @@ type loginRequest struct {
 }
 
 type loginResponse struct {
-	Token     string       `json:"token"`
 	ExpiresAt time.Time    `json:"expiresAt"`
 	User      userResponse `json:"user"`
 }
@@ -70,11 +69,17 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	setAuthCookies(w, r, token, expiresAt)
+
 	writeJSON(w, http.StatusOK, loginResponse{
-		Token:     token,
 		ExpiresAt: expiresAt,
 		User:      toUserResponse(user),
 	})
+}
+
+func (s *Server) handleLogout(w http.ResponseWriter, _ *http.Request) {
+	clearAuthCookies(w)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type registerRequest struct {
