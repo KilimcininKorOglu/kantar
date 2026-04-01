@@ -224,6 +224,16 @@ func (s *Server) handleApprovePackage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch latest version for policy evaluation and sync job
+	versions, _ := s.deps.Queries.ListPackageVersions(r.Context(), sqlc.ListPackageVersionsParams{
+		PackageID: pkg.ID, Limit: 1, Offset: 0,
+	})
+	var latestVersion string
+	if len(versions) > 0 {
+		latestVersion = versions[0].Version
+	}
+
+	// Evaluate policies before approval
 	dbPolicies, _ := s.deps.Queries.ListPolicies(r.Context())
 	if len(dbPolicies) > 0 {
 		policyEngine := policy.BuildFromDB(dbPolicies)
@@ -231,11 +241,6 @@ func (s *Server) handleApprovePackage(w http.ResponseWriter, r *http.Request) {
 			Name:    pkg.Name,
 			License: pkg.License,
 		}
-
-		// Enrich with version data if available
-		versions, _ := s.deps.Queries.ListPackageVersions(r.Context(), sqlc.ListPackageVersionsParams{
-			PackageID: pkg.ID, Limit: 1, Offset: 0,
-		})
 		if len(versions) > 0 {
 			v := versions[0]
 			pkgInfo.Version = v.Version
@@ -275,21 +280,19 @@ func (s *Server) handleApprovePackage(w http.ResponseWriter, r *http.Request) {
 
 	// Enqueue recursive dependency sync if engine is available
 	if s.deps.SyncEngine != nil {
-		pkg, pkgErr := s.deps.Queries.GetPackageByID(r.Context(), id)
-		if pkgErr == nil {
-			jobID, syncErr := s.deps.SyncEngine.Enqueue(r.Context(), &syncp.Job{
-				PackageID:   id,
-				PackageName: pkg.Name,
-				Ecosystem:   registry.EcosystemType(pkg.RegistryType),
-				ApprovedBy:  approvedBy,
-				Options:     syncp.SyncOptions{MaxDepth: 10},
-			})
-			if syncErr == nil {
-				writeJSON(w, http.StatusOK, map[string]any{"status": "approved", "syncJobId": jobID})
-				return
-			}
-			s.logger.Warn("failed to enqueue sync job", "error", syncErr)
+		jobID, syncErr := s.deps.SyncEngine.Enqueue(r.Context(), &syncp.Job{
+			PackageID:   id,
+			PackageName: pkg.Name,
+			Version:     latestVersion,
+			Ecosystem:   registry.EcosystemType(pkg.RegistryType),
+			ApprovedBy:  approvedBy,
+			Options:     syncp.SyncOptions{MaxDepth: 10},
+		})
+		if syncErr == nil {
+			writeJSON(w, http.StatusOK, map[string]any{"status": "approved", "syncJobId": jobID})
+			return
 		}
+		s.logger.Warn("failed to enqueue sync job", "error", syncErr)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "approved"})
