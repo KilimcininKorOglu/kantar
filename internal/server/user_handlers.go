@@ -12,6 +12,68 @@ import (
 	"github.com/KilimcininKorOglu/kantar/internal/database/sqlc"
 )
 
+type createUserRequest struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Role     string `json:"role"`
+}
+
+func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
+	if s.deps.Queries == nil {
+		writeError(w, http.StatusServiceUnavailable, "service not ready")
+		return
+	}
+
+	var req createUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Username == "" {
+		writeError(w, http.StatusBadRequest, "username required")
+		return
+	}
+	if len(req.Password) < 8 {
+		writeError(w, http.StatusBadRequest, "password must be at least 8 characters")
+		return
+	}
+
+	role := string(auth.RoleViewer)
+	if req.Role != "" {
+		if !auth.IsValidRole(req.Role) {
+			writeError(w, http.StatusBadRequest, "invalid role")
+			return
+		}
+		role = req.Role
+	}
+
+	hash, err := auth.HashPassword(req.Password)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "password hashing failed")
+		return
+	}
+
+	email := sql.NullString{}
+	if req.Email != "" {
+		email = sql.NullString{String: req.Email, Valid: true}
+	}
+
+	user, err := s.deps.Queries.CreateUser(r.Context(), sqlc.CreateUserParams{
+		Username:     req.Username,
+		Email:        email,
+		PasswordHash: hash,
+		Role:         role,
+	})
+	if err != nil {
+		writeError(w, http.StatusConflict, "username already exists")
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, toUserResponse(user))
+}
+
 func (s *Server) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	if s.deps.Queries == nil {
 		writeError(w, http.StatusServiceUnavailable, "service not ready")

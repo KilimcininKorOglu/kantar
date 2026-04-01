@@ -86,12 +86,13 @@ function CreateUserForm({ onClose, onCreated }: { onClose: () => void; onCreated
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [role, setRole] = useState('viewer')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault(); setLoading(true); setError('')
-    try { await api.post('/auth/register', { username, email, password }); onCreated() }
+    try { await api.post('/users', { username, email, password, role }); onCreated() }
     catch { setError(t('users.failedToCreate')) }
     setLoading(false)
   }
@@ -103,10 +104,17 @@ function CreateUserForm({ onClose, onCreated }: { onClose: () => void; onCreated
         <button onClick={onClose} className="text-text-dim hover:text-text cursor-pointer"><X className="w-4 h-4" /></button>
       </div>
       {error && <div className="bg-danger/10 border border-danger/20 text-danger text-xs rounded px-3 py-2 mb-3">{error}</div>}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <input placeholder={t('users.username')} value={username} onChange={(e) => setUsername(e.target.value)} className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text focus:outline-none focus:border-accent" required />
         <input placeholder={t('common.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text focus:outline-none focus:border-accent" />
         <input placeholder={t('users.passwordMin')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text focus:outline-none focus:border-accent" required minLength={8} />
+        <select value={role} onChange={(e) => setRole(e.target.value)} className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text">
+          <option value="viewer">Viewer</option>
+          <option value="consumer">Consumer</option>
+          <option value="publisher">Publisher</option>
+          <option value="registry_admin">Registry Admin</option>
+          <option value="super_admin">Super Admin</option>
+        </select>
         <button type="submit" disabled={loading} className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-xs font-medium rounded py-1.5 cursor-pointer">{loading ? t('common.creating') : t('common.create')}</button>
       </form>
     </div>

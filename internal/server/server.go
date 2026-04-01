@@ -160,6 +160,7 @@ func (s *Server) setupAPIRoutes(r chi.Router) {
 		r.Route("/users", func(r chi.Router) {
 			r.Use(auth.RequireRole(auth.RoleSuperAdmin))
 			r.Get("/", s.handleListUsers)
+			r.Post("/", s.handleCreateUser)
 			r.Get("/{id}", s.handleGetUser)
 			r.Put("/{id}", s.handleUpdateUser)
 			r.Delete("/{id}", s.handleDeleteUser)
