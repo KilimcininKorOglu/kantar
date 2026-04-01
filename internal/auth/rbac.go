@@ -2,7 +2,6 @@ package auth
 
 import (
 	"net/http"
-	"path"
 )
 
 // Role represents a user role in the RBAC system.
@@ -57,15 +56,3 @@ func RequireRole(minRole Role) func(next http.Handler) http.Handler {
 	}
 }
 
-// MatchNamespace checks if a pattern matches a package name.
-// Supports glob patterns like "@org/*", "express", "@types/*".
-func MatchNamespace(pattern, name string) bool {
-	if pattern == "*" {
-		return true
-	}
-	matched, err := path.Match(pattern, name)
-	if err != nil {
-		return false
-	}
-	return matched
-}

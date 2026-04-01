@@ -33,22 +33,6 @@ func Middleware(jwtMgr *JWTManager) func(next http.Handler) http.Handler {
 	}
 }
 
-// OptionalMiddleware extracts JWT claims if present but does not require auth.
-func OptionalMiddleware(jwtMgr *JWTManager) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			tokenStr := extractToken(r)
-			if tokenStr != "" {
-				if claims, err := jwtMgr.ValidateToken(tokenStr); err == nil {
-					ctx := context.WithValue(r.Context(), claimsKey, claims)
-					r = r.WithContext(ctx)
-				}
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
 // ClaimsFromContext retrieves the Claims from the request context.
 func ClaimsFromContext(ctx context.Context) *Claims {
 	claims, _ := ctx.Value(claimsKey).(*Claims)
