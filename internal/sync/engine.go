@@ -16,6 +16,7 @@ import (
 const (
 	defaultMaxDepth      = 10
 	defaultUpstreamDelay = 50 * time.Millisecond
+	defaultJobTimeout    = 30 * time.Minute
 	queueSize            = 256
 )
 
@@ -86,7 +87,10 @@ func (e *Engine) Start(ctx context.Context, workers int) {
 			for {
 				select {
 				case entry := <-e.queue:
-					e.processSyncJob(ctx, entry)
+					// Each job gets its own bounded context independent of app lifecycle
+					jobCtx, cancel := context.WithTimeout(context.Background(), defaultJobTimeout)
+					e.processSyncJob(jobCtx, entry)
+					cancel()
 				case <-ctx.Done():
 					return
 				}
