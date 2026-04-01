@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
@@ -14,13 +14,13 @@ export default function PackageDetail() {
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
-  const loadPackage = () => {
+  const loadPackage = useCallback(() => {
     setLoading(true)
     api.get<Package>(`/packages/by-name/${registry}/${encodeURIComponent(name!)}`)
       .then(setPkg).catch(() => setError(t('packageDetail.packageNotFound'))).finally(() => setLoading(false))
-  }
+  }, [registry, name, t])
 
-  useEffect(() => { loadPackage() }, [registry, name])
+  useEffect(() => { loadPackage() }, [loadPackage])
 
   const handleApprove = async () => {
     if (!pkg) return

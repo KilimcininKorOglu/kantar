@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, useCallback, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
 import type { User } from '../api/types'
@@ -11,11 +11,11 @@ export default function Users() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [error, setError] = useState('')
 
-  const loadUsers = () => {
+  const loadUsers = useCallback(() => {
     api.get<User[]>('/users').then(setUsers).catch(() => setError(t('users.failedToLoad')))
-  }
+  }, [t])
 
-  useEffect(() => { loadUsers() }, [])
+  useEffect(() => { loadUsers() }, [loadUsers])
 
   const handleDelete = async (id: number) => {
     if (!confirm(t('users.confirmDelete'))) return
