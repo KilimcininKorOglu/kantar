@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/KilimcininKorOglu/kantar/internal/cache"
+	"github.com/KilimcininKorOglu/kantar/internal/httpclient"
 	"github.com/KilimcininKorOglu/kantar/internal/storage"
 	"github.com/KilimcininKorOglu/kantar/pkg/registry"
 )
@@ -89,7 +90,7 @@ func (p *Plugin) FetchMetadata(_ context.Context, name string) (*registry.Packag
 	}, nil
 }
 
-var gomodHTTPClient = &http.Client{Timeout: 30 * time.Second}
+var gomodHTTPClient = httpclient.Shared
 
 // ResolveDependencies fetches the go.mod file from upstream and parses require directives.
 func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {

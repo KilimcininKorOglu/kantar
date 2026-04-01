@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/KilimcininKorOglu/kantar/internal/cache"
+	"github.com/KilimcininKorOglu/kantar/internal/httpclient"
 	"github.com/KilimcininKorOglu/kantar/internal/storage"
 	"github.com/KilimcininKorOglu/kantar/pkg/registry"
 )
@@ -81,7 +82,7 @@ func (p *Plugin) FetchMetadata(_ context.Context, name string) (*registry.Packag
 	}, nil
 }
 
-var nugetHTTPClient = &http.Client{Timeout: 30 * time.Second}
+var nugetHTTPClient = httpclient.Shared
 
 type nugetRegistrationResponse struct {
 	CatalogEntry struct {

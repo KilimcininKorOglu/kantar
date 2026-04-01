@@ -10,12 +10,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/KilimcininKorOglu/kantar/internal/httpclient"
 )
 
-var httpClient = &http.Client{Timeout: 30 * time.Second}
+var httpClient = httpclient.Shared
 
 func extractParam(r *http.Request, name string) string {
 	return chi.URLParam(r, name)

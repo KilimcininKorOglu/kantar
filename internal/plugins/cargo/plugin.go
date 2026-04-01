@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/KilimcininKorOglu/kantar/internal/cache"
+	"github.com/KilimcininKorOglu/kantar/internal/httpclient"
 	"github.com/KilimcininKorOglu/kantar/internal/storage"
 	"github.com/KilimcininKorOglu/kantar/pkg/registry"
 )
@@ -132,7 +133,7 @@ func (p *Plugin) FetchMetadata(_ context.Context, name string) (*registry.Packag
 	}, nil
 }
 
-var cargoHTTPClient = &http.Client{Timeout: 30 * time.Second}
+var cargoHTTPClient = httpclient.Shared
 
 // ResolveDependencies fetches the crate index from upstream and returns dependencies
 // for the best matching version.

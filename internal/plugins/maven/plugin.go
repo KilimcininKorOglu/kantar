@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/KilimcininKorOglu/kantar/internal/cache"
+	"github.com/KilimcininKorOglu/kantar/internal/httpclient"
 	"github.com/KilimcininKorOglu/kantar/internal/storage"
 	"github.com/KilimcininKorOglu/kantar/pkg/registry"
 	"github.com/go-chi/chi/v5"
@@ -84,7 +85,7 @@ func (p *Plugin) FetchMetadata(_ context.Context, name string) (*registry.Packag
 	}, nil
 }
 
-var mavenHTTPClient = &http.Client{Timeout: 30 * time.Second}
+var mavenHTTPClient = httpclient.Shared
 
 type pomProject struct {
 	XMLName      xml.Name        `xml:"project"`

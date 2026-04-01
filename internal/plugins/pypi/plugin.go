@@ -16,6 +16,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/KilimcininKorOglu/kantar/internal/httpclient"
+
 	"github.com/KilimcininKorOglu/kantar/internal/cache"
 	"github.com/KilimcininKorOglu/kantar/internal/storage"
 	"github.com/KilimcininKorOglu/kantar/pkg/registry"
@@ -107,7 +109,7 @@ func (p *Plugin) FetchMetadata(ctx context.Context, name string) (*registry.Pack
 	return meta, nil
 }
 
-var pypiHTTPClient = &http.Client{Timeout: 30 * time.Second}
+var pypiHTTPClient = httpclient.Shared
 
 type pypiJSONResponse struct {
 	Info struct {
