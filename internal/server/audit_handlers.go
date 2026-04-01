@@ -54,10 +54,27 @@ func (s *Server) handleListAuditLogs(w http.ResponseWriter, r *http.Request) {
 		limit = 100
 	}
 
-	logs, err := s.deps.Queries.ListAuditLogs(r.Context(), sqlc.ListAuditLogsParams{
-		Limit:  limit,
-		Offset: offset,
-	})
+	actor := r.URL.Query().Get("actor")
+	event := r.URL.Query().Get("event")
+
+	var logs []sqlc.AuditLog
+	var err error
+
+	switch {
+	case actor != "":
+		logs, err = s.deps.Queries.ListAuditLogsByActor(r.Context(), sqlc.ListAuditLogsByActorParams{
+			ActorUsername: actor, Limit: limit, Offset: offset,
+		})
+	case event != "":
+		logs, err = s.deps.Queries.ListAuditLogsByEvent(r.Context(), sqlc.ListAuditLogsByEventParams{
+			Event: event, Limit: limit, Offset: offset,
+		})
+	default:
+		logs, err = s.deps.Queries.ListAuditLogs(r.Context(), sqlc.ListAuditLogsParams{
+			Limit: limit, Offset: offset,
+		})
+	}
+
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list audit logs")
 		return

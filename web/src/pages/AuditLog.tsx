@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
 import type { AuditLogEntry } from '../api/types'
@@ -10,18 +10,21 @@ export default function AuditLog() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([])
   const [eventFilter, setEventFilter] = useState('')
   const [actorFilter, setActorFilter] = useState('')
+  const [actorInput, setActorInput] = useState('')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    api.get<AuditLogEntry[]>('/audit?limit=200')
+  const loadLogs = useCallback(() => {
+    setLoading(true)
+    const params = new URLSearchParams({ limit: '200' })
+    if (actorFilter) params.set('actor', actorFilter)
+    if (eventFilter) params.set('event', eventFilter)
+    api.get<AuditLogEntry[]>(`/audit?${params}`)
       .then(setLogs).catch(() => {}).finally(() => setLoading(false))
-  }, [])
+  }, [actorFilter, eventFilter])
 
-  const filteredLogs = logs.filter((l) => {
-    if (eventFilter && l.event !== eventFilter) return false
-    if (actorFilter && !l.actorUsername.toLowerCase().includes(actorFilter.toLowerCase())) return false
-    return true
-  })
+  useEffect(() => { loadLogs() }, [loadLogs])
+
+  const filteredLogs = logs
 
   const handleVerify = async () => {
     try {
@@ -56,7 +59,11 @@ export default function AuditLog() {
           <option value="">{t('audit.allEvents')}</option>
           {['user.login', 'user.create', 'package.approve', 'package.block', 'package.download', 'registry.sync', 'policy.violation'].map(e => <option key={e} value={e}>{e}</option>)}
         </select>
-        <input type="text" placeholder={t('audit.filterByActor')} value={actorFilter} onChange={(e) => setActorFilter(e.target.value)} className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text w-48 focus:outline-none focus:border-accent" />
+        <input type="text" placeholder={t('audit.filterByActor')} value={actorInput}
+          onChange={(e) => setActorInput(e.target.value)}
+          onBlur={() => setActorFilter(actorInput)}
+          onKeyDown={(e) => { if (e.key === 'Enter') setActorFilter(actorInput) }}
+          className="bg-surface-2 border border-border rounded px-3 py-1.5 text-xs text-text w-48 focus:outline-none focus:border-accent" />
       </div>
 
       <div className="bg-surface border border-border rounded overflow-hidden">
