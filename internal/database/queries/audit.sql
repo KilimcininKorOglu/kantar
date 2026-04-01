@@ -17,3 +17,6 @@ SELECT * FROM audit_logs ORDER BY id DESC LIMIT 1;
 
 -- name: CountAuditLogs :one
 SELECT COUNT(*) FROM audit_logs;
+
+-- name: ListAuditLogsAsc :many
+SELECT * FROM audit_logs ORDER BY id ASC LIMIT $1 OFFSET $2;

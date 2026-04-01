@@ -144,6 +144,52 @@ func (q *Queries) ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([
 	return items, nil
 }
 
+const listAuditLogsAsc = `-- name: ListAuditLogsAsc :many
+SELECT id, timestamp, event, actor_username, actor_ip, actor_user_agent, resource_registry, resource_package, resource_version, result, metadata_json, prev_hash, hash FROM audit_logs ORDER BY id ASC LIMIT $1 OFFSET $2
+`
+
+type ListAuditLogsAscParams struct {
+	Limit  int64
+	Offset int64
+}
+
+func (q *Queries) ListAuditLogsAsc(ctx context.Context, arg ListAuditLogsAscParams) ([]AuditLog, error) {
+	rows, err := q.db.QueryContext(ctx, listAuditLogsAsc, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AuditLog
+	for rows.Next() {
+		var i AuditLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.Timestamp,
+			&i.Event,
+			&i.ActorUsername,
+			&i.ActorIp,
+			&i.ActorUserAgent,
+			&i.ResourceRegistry,
+			&i.ResourcePackage,
+			&i.ResourceVersion,
+			&i.Result,
+			&i.MetadataJson,
+			&i.PrevHash,
+			&i.Hash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAuditLogsByActor = `-- name: ListAuditLogsByActor :many
 SELECT id, timestamp, event, actor_username, actor_ip, actor_user_agent, resource_registry, resource_package, resource_version, result, metadata_json, prev_hash, hash FROM audit_logs WHERE actor_username = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3
 `

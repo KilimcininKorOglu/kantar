@@ -143,7 +143,8 @@ type VerifyResult struct {
 	ErrorMessage string `json:"errorMessage,omitempty"`
 }
 
-// Verify checks the integrity of the audit log hash chain.
+// Verify checks the integrity of the audit log hash chain by iterating
+// all entries in batches and recomputing each hash from the previous entry.
 func (l *Logger) Verify(ctx context.Context) (*VerifyResult, error) {
 	count, err := l.queries.CountAuditLogs(ctx)
 	if err != nil {
@@ -155,7 +156,62 @@ func (l *Logger) Verify(ctx context.Context) (*VerifyResult, error) {
 		TotalEntries: count,
 	}
 
-	// For chain verification, we'd need to iterate all logs and check hashes.
-	// This is the structural foundation; full iteration would be done in batches.
+	if count == 0 {
+		return result, nil
+	}
+
+	const batchSize int64 = 500
+	var prevHash string
+	var checked int64
+
+	for offset := int64(0); offset < count; offset += batchSize {
+		logs, err := l.queries.ListAuditLogsAsc(ctx, sqlc.ListAuditLogsAscParams{
+			Limit:  batchSize,
+			Offset: offset,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("fetching audit logs at offset %d: %w", offset, err)
+		}
+
+		for _, entry := range logs {
+			checked++
+
+			// Verify prev_hash chain link
+			if entry.PrevHash != prevHash {
+				result.Valid = false
+				result.ErrorAt = checked
+				result.ErrorMessage = fmt.Sprintf("chain broken at entry %d: expected prev_hash %q, got %q", entry.ID, prevHash, entry.PrevHash)
+				return result, nil
+			}
+
+			// Recompute hash and verify
+			recomputed := computeHash(&Event{
+				Timestamp: entry.Timestamp,
+				EventType: EventType(entry.Event),
+				Actor: Actor{
+					Username:  entry.ActorUsername,
+					IP:        entry.ActorIp,
+					UserAgent: entry.ActorUserAgent,
+				},
+				Resource: Resource{
+					Registry: entry.ResourceRegistry,
+					Package:  entry.ResourcePackage,
+					Version:  entry.ResourceVersion,
+				},
+				Result:   entry.Result,
+				PrevHash: entry.PrevHash,
+			})
+
+			if entry.Hash != recomputed {
+				result.Valid = false
+				result.ErrorAt = checked
+				result.ErrorMessage = fmt.Sprintf("hash mismatch at entry %d: stored %q, computed %q", entry.ID, entry.Hash, recomputed)
+				return result, nil
+			}
+
+			prevHash = entry.Hash
+		}
+	}
+
 	return result, nil
 }
