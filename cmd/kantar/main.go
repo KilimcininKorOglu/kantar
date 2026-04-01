@@ -192,7 +192,9 @@ func buildApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*se
 	helmPlugin := helm.New(store, logger)
 
 	// Wire cache into plugins
+	dockerPlugin := docker.New(store, logger)
 	if appCache != nil {
+		dockerPlugin.WithCache(appCache)
 		npmPlugin.WithCache(appCache)
 		pypiPlugin.WithCache(appCache)
 		gomodPlugin.WithCache(appCache)
@@ -202,7 +204,7 @@ func buildApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*se
 		helmPlugin.WithCache(appCache)
 	}
 
-	_ = pluginReg.Register(docker.New(store, logger))
+	_ = pluginReg.Register(dockerPlugin)
 	_ = pluginReg.Register(npmPlugin)
 	_ = pluginReg.Register(pypiPlugin)
 	_ = pluginReg.Register(gomodPlugin)

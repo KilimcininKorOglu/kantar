@@ -41,6 +41,16 @@ func generateUUID() string {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
 
+// normalizeImageName handles the Docker Hub convention where single-name
+// images (e.g. "nginx") must be prefixed with "library/" for the upstream API.
+// Multi-segment names (e.g. "myorg/myimage") are returned unchanged.
+func normalizeImageName(name string) string {
+	if !strings.Contains(name, "/") {
+		return "library/" + name
+	}
+	return name
+}
+
 // detectManifestMediaType tries to detect the media type from manifest JSON.
 func detectManifestMediaType(data []byte) string {
 	var manifest struct {
