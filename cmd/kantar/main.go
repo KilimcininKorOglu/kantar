@@ -164,13 +164,14 @@ func buildApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*se
 	logger.Info("storage ready", "path", cfg.Storage.Path)
 
 	// 5. Cache
+	var appCache cache.Cache
 	if cfg.Cache.Enabled && cfg.Cache.Type == "memory" {
 		maxBytes, parseErr := util.ParseSize(cfg.Cache.MaxSize)
 		if parseErr != nil {
 			logger.Warn("invalid cache max_size, using 1GB default", "error", parseErr)
 			maxBytes = 1 << 30
 		}
-		_ = cache.NewMemory(maxBytes, cfg.Cache.TTL.Duration)
+		appCache = cache.NewMemory(maxBytes, cfg.Cache.TTL.Duration)
 		logger.Info("cache ready", "type", "memory", "maxSize", cfg.Cache.MaxSize)
 	}
 
@@ -189,6 +190,17 @@ func buildApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*se
 	mavenPlugin := maven.New(store, logger)
 	nugetPlugin := nuget.New(store, logger)
 	helmPlugin := helm.New(store, logger)
+
+	// Wire cache into plugins
+	if appCache != nil {
+		npmPlugin.WithCache(appCache)
+		pypiPlugin.WithCache(appCache)
+		gomodPlugin.WithCache(appCache)
+		cargoPlugin.WithCache(appCache)
+		mavenPlugin.WithCache(appCache)
+		nugetPlugin.WithCache(appCache)
+		helmPlugin.WithCache(appCache)
+	}
 
 	_ = pluginReg.Register(docker.New(store, logger))
 	_ = pluginReg.Register(npmPlugin)
@@ -223,6 +235,7 @@ func buildApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*se
 		Manager:     mgr,
 		AuditLogger: auditLog,
 		SyncEngine:  syncEngine,
+		Cache:       appCache,
 	}
 	srv := server.New(cfg.Server, logger, deps)
 

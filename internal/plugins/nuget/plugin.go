@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/KilimcininKorOglu/kantar/internal/cache"
 	"github.com/KilimcininKorOglu/kantar/internal/storage"
 	"github.com/KilimcininKorOglu/kantar/pkg/registry"
 )
@@ -21,8 +22,9 @@ import (
 type Plugin struct {
 	mu      sync.RWMutex
 	storage storage.Storage
-	logger  *slog.Logger
-	config  pluginConfig
+	logger   *slog.Logger
+	appCache cache.Cache
+	config   pluginConfig
 }
 
 type pluginConfig struct {
@@ -35,6 +37,11 @@ func New(store storage.Storage, logger *slog.Logger) *Plugin {
 		storage: store,
 		logger:  logger,
 	}
+}
+
+// WithCache sets the cache for upstream response caching.
+func (p *Plugin) WithCache(c cache.Cache) {
+	p.appCache = c
 }
 
 func (p *Plugin) Name() string                      { return "NuGet Registry" }

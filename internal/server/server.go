@@ -14,6 +14,7 @@ import (
 
 	"github.com/KilimcininKorOglu/kantar/internal/audit"
 	"github.com/KilimcininKorOglu/kantar/internal/auth"
+	"github.com/KilimcininKorOglu/kantar/internal/cache"
 	"github.com/KilimcininKorOglu/kantar/internal/config"
 	"github.com/KilimcininKorOglu/kantar/internal/database/sqlc"
 	"github.com/KilimcininKorOglu/kantar/internal/manager"
@@ -27,6 +28,7 @@ type Dependencies struct {
 	Manager     *manager.Manager
 	AuditLogger *audit.Logger
 	SyncEngine  *syncp.Engine
+	Cache       cache.Cache
 }
 
 // Server is the main HTTP server for Kantar.
