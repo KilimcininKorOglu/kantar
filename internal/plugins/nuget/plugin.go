@@ -105,7 +105,7 @@ type nugetDependency struct {
 func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange string) ([]registry.Dependency, string, error) {
 	version := versionRange
 	if version == "" || version == "*" || version == "latest" {
-		return nil, "", fmt.Errorf("NuGet requires explicit version for %s", name)
+		return nil, "", fmt.Errorf("nuget requires explicit version for %s", name)
 	}
 
 	cacheKey := fmt.Sprintf("upstream:%s:%s@%s", p.Ecosystem(), name, version)
@@ -123,9 +123,16 @@ func (p *Plugin) ResolveDependencies(ctx context.Context, name, versionRange str
 	}
 
 	if !parsed {
-		// NuGet registration API
-		url := fmt.Sprintf("https://api.nuget.org/v3/registration5-gz-semver2/%s/%s.json",
-			strings.ToLower(name), strings.ToLower(version))
+		// NuGet registration API — use configured upstream
+		p.mu.RLock()
+		upstream := p.config.Upstream
+		p.mu.RUnlock()
+		if upstream == "" {
+			upstream = "https://api.nuget.org"
+		}
+		registrationBase := strings.TrimSuffix(upstream, "/") + "/v3/registration5-gz-semver2"
+		url := fmt.Sprintf("%s/%s/%s.json",
+			registrationBase, strings.ToLower(name), strings.ToLower(version))
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
