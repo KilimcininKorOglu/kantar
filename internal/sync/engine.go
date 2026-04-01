@@ -78,7 +78,9 @@ func (e *Engine) RegisterResolver(eco registry.EcosystemType, r DependencyResolv
 // Start launches worker goroutines and recovers stale jobs.
 func (e *Engine) Start(ctx context.Context, workers int) {
 	// Recover stale running jobs from previous crash
-	e.queries.MarkStaleSyncJobsFailed(ctx)
+	if err := e.queries.MarkStaleSyncJobsFailed(ctx); err != nil {
+		e.logger.Warn("failed to mark stale sync jobs", "error", err)
+	}
 
 	for i := 0; i < workers; i++ {
 		e.wg.Add(1)
@@ -217,12 +219,15 @@ func (e *Engine) processSyncJob(ctx context.Context, entry *jobEntry) {
 
 		// Auto-approve if still pending
 		if pkg.Status == "pending" {
-			e.queries.UpdatePackageStatus(ctx, sqlc.UpdatePackageStatusParams{
+			if err := e.queries.UpdatePackageStatus(ctx, sqlc.UpdatePackageStatusParams{
 				Status:        "approved",
 				ApprovedBy:    job.ApprovedBy + " (auto-sync)",
 				BlockedReason: "",
 				ID:            pkg.ID,
-			})
+			}); err != nil {
+				errors = append(errors, fmt.Sprintf("approve %s: %v", node.name, err))
+				continue
+			}
 		}
 
 		// Upsert version
@@ -245,24 +250,28 @@ func (e *Engine) processSyncJob(ctx context.Context, entry *jobEntry) {
 			if dep.Dev {
 				depDev = 1
 			}
-			e.queries.InsertPackageDependency(ctx, sqlc.InsertPackageDependencyParams{
+			if err := e.queries.InsertPackageDependency(ctx, sqlc.InsertPackageDependencyParams{
 				VersionID:       ver.ID,
 				DepName:         dep.Name,
 				DepVersionRange: dep.VersionRange,
 				DepOptional:     depOptional,
 				DepDev:          depDev,
-			})
+			}); err != nil {
+				e.logger.Warn("failed to insert dependency", "package", node.name, "dep", dep.Name, "error", err)
+			}
 		}
 
 		synced++
 
 		// Update job progress
-		e.queries.UpdateSyncJobStatus(ctx, sqlc.UpdateSyncJobStatusParams{
+		if err := e.queries.UpdateSyncJobStatus(ctx, sqlc.UpdateSyncJobStatusParams{
 			Status:         "running",
 			PackagesSynced: synced,
 			ErrorMessage:   "",
 			ID:             jobID,
-		})
+		}); err != nil {
+			e.logger.Warn("failed to update sync job progress", "jobID", jobID, "error", err)
+		}
 
 		// Enqueue child dependencies (deduplicate before network calls)
 		for _, dep := range deps {
@@ -298,12 +307,14 @@ func (e *Engine) processSyncJob(ctx context.Context, entry *jobEntry) {
 		}
 	}
 
-	e.queries.UpdateSyncJobStatus(ctx, sqlc.UpdateSyncJobStatusParams{
+	if err := e.queries.UpdateSyncJobStatus(ctx, sqlc.UpdateSyncJobStatusParams{
 		Status:         status,
 		PackagesSynced: synced,
 		ErrorMessage:   errMsg,
 		ID:             jobID,
-	})
+	}); err != nil {
+		e.logger.Error("failed to finalize sync job status", "jobID", jobID, "error", err)
+	}
 
 	if e.auditLog != nil {
 		e.auditLog.Log(ctx, &audit.Event{
