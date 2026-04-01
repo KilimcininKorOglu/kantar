@@ -24,8 +24,8 @@ const storagePrefix = "maven/repository"
 
 // Plugin implements the RegistryPlugin interface for Maven artifacts.
 type Plugin struct {
-	mu      sync.RWMutex
-	storage storage.Storage
+	mu       sync.RWMutex
+	storage  storage.Storage
 	logger   *slog.Logger
 	appCache cache.Cache
 	config   pluginConfig

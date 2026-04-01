@@ -160,4 +160,3 @@ func TestRoleHierarchy(t *testing.T) {
 		}
 	}
 }
-

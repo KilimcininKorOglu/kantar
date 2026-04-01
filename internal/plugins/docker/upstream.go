@@ -31,13 +31,13 @@ func newUpstreamClient(baseURL, username, password string, logger *slog.Logger) 
 			Timeout: 10 * time.Second,
 		}).DialContext,
 		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout:  30 * time.Second,
-		MaxIdleConns:           50,
-		MaxIdleConnsPerHost:    10,
-		IdleConnTimeout:        90 * time.Second,
-		ExpectContinueTimeout:  1 * time.Second,
-		DisableCompression:     false,
-		ForceAttemptHTTP2:      true,
+		ResponseHeaderTimeout: 30 * time.Second,
+		MaxIdleConns:          50,
+		MaxIdleConnsPerHost:   10,
+		IdleConnTimeout:       90 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		DisableCompression:    false,
+		ForceAttemptHTTP2:     true,
 	}
 
 	return &upstreamClient{

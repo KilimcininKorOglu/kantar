@@ -55,4 +55,3 @@ func RequireRole(minRole Role) func(next http.Handler) http.Handler {
 		})
 	}
 }
-

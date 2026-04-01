@@ -14,7 +14,7 @@ var Shared = &http.Client{
 	Timeout: 30 * time.Second,
 	Transport: &http.Transport{
 		DialContext:           (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
-		TLSHandshakeTimeout:  10 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
 		ResponseHeaderTimeout: 15 * time.Second,
 		MaxIdleConns:          100,
 		MaxIdleConnsPerHost:   10,

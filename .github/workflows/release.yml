@@ -16,9 +16,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+
+      - name: Build web UI
+        run: cd web && npm ci && npm run build
 
       - name: Build cross-platform binaries
         run: make build-cross

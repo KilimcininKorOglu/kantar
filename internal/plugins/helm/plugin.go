@@ -24,8 +24,8 @@ import (
 
 // Plugin implements the RegistryPlugin interface for Helm chart repositories.
 type Plugin struct {
-	mu      sync.RWMutex
-	storage storage.Storage
+	mu       sync.RWMutex
+	storage  storage.Storage
 	logger   *slog.Logger
 	appCache cache.Cache
 	config   pluginConfig
