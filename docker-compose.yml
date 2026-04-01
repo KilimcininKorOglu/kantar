@@ -8,6 +8,7 @@ services:
       - ./docker-data/kantar.toml:/etc/kantar/kantar.toml:ro
     environment:
       - KANTAR_DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+      - KANTAR_JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set in .env}
     depends_on:
       postgres:
         condition: service_healthy
