@@ -84,10 +84,8 @@ jobs:
       - name: Build web UI
         run: cd web && npm ci && npm run build
 
-      - name: Build binaries
-        run: make build-all
+      - name: Build binary
+        run: make build
 
-      - name: Verify binaries
-        run: |
-          ./bin/kantar version
-          ./bin/kantarctl version
+      - name: Verify binary
+        run: ./bin/kantar version

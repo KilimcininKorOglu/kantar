@@ -26,8 +26,6 @@ RUN CGO_ENABLED=0 go build -ldflags "-s -w \
     -X main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     -o /kantar ./cmd/kantar
 
-RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /kantarctl ./cmd/kantarctl
-
 # Stage 3: Runtime
 FROM alpine:3.20
 
@@ -35,7 +33,6 @@ RUN apk add --no-cache ca-certificates tzdata && \
     adduser -D -u 1000 kantar
 
 COPY --from=builder /kantar /usr/local/bin/kantar
-COPY --from=builder /kantarctl /usr/local/bin/kantarctl
 
 RUN mkdir -p /var/lib/kantar/data /var/lib/kantar/logs /etc/kantar && \
     chown -R kantar:kantar /var/lib/kantar /etc/kantar

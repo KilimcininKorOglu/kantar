@@ -21,7 +21,6 @@ Kantar proxies, mirrors, approves, and serves packages from multiple ecosystems 
 - **Multi-Language** -- English, Turkish, German; per-user language preference
 - **Per-User Timezone** -- each user selects their timezone, all dates displayed accordingly
 - **User Profile** -- self-service email, timezone, language, and password management
-- **CLI Tool** -- `kantarctl` for scripting and automation
 - **Single Binary** -- Go binary with embedded web UI, no separate frontend deployment
 
 ## Quick Start
@@ -50,7 +49,7 @@ Prerequisites: Go 1.26+, Node.js 22+ (for web UI build), PostgreSQL 15+
 ```bash
 # Build web UI + binaries
 make web
-make build-all
+make build
 
 # Initialize config
 ./bin/kantar init
@@ -205,7 +204,7 @@ Runtime settings (log level, cache TTL, session TTL, registry modes, policy rule
 ## Development
 
 ```bash
-make build-all              # Build server + CLI
+make build                  # Build server binary
 make web                    # Build web UI (requires Node.js 22+)
 make test                   # Run tests with race detector
 make test-cover             # Tests with coverage report (coverage/coverage.html)
@@ -228,32 +227,10 @@ Run a single test:
 go test ./internal/auth/ -run TestHashPassword -v -race -count=1
 ```
 
-### CLI Tool (kantarctl)
-
-`kantarctl` provides command-line management of the Kantar registry. Global flags: `--server`, `--token`, `-o` (table/json).
-
-| Command                            | Description                         |
-|------------------------------------|-------------------------------------|
-| `kantarctl status`                 | Show system status                  |
-| `kantarctl registry list`          | List all configured registries      |
-| `kantarctl registry sync [name]`   | Sync packages from upstream         |
-| `kantarctl package search [query]` | Search for packages (`--registry`)  |
-| `kantarctl package approve [pkg]`  | Approve a package                   |
-| `kantarctl package block [pkg]`    | Block a package (`--reason`)        |
-| `kantarctl package info [pkg]`     | Show package details                |
-| `kantarctl package import`         | Import packages from TOML (`--file`)|
-| `kantarctl package export`         | Export approved list (`--format`)    |
-| `kantarctl user list`              | List all users                      |
-| `kantarctl user create`            | Create user (`--username`, `--role`)|
-| `kantarctl user token create`      | Create API token (`--expires`)      |
-| `kantarctl policy validate`        | Validate policy files               |
-| `kantarctl policy test [pkg]`      | Test package against policies       |
-
 ### Project Structure
 
 ```
 cmd/kantar/          Server binary (serve, init, version)
-cmd/kantarctl/       CLI tool
 internal/server/     HTTP server, middleware, API handlers
 internal/auth/       JWT, bcrypt, RBAC, API tokens
 internal/database/   PostgreSQL, migrations, sqlc queries

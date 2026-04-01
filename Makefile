@@ -2,7 +2,6 @@
 # Build system
 
 BINARY_NAME := kantar
-CLI_NAME := kantarctl
 MODULE := github.com/KilimcininKorOglu/kantar
 
 # Version info
@@ -23,7 +22,7 @@ GOLINT := golangci-lint
 BUILD_DIR := bin
 COVERAGE_DIR := coverage
 
-.PHONY: all build build-cli clean test test-cover lint fmt vet run help generate web docker-up docker-down docker-rebuild docker-logs
+.PHONY: all build clean test test-cover lint fmt vet run help generate web docker-up docker-down docker-rebuild docker-logs
 
 ## Default target
 all: lint test build
@@ -33,15 +32,6 @@ build:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
 	$(GO) build $(GOFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/kantar
-
-## Build the kantarctl CLI binary
-build-cli:
-	@echo "Building $(CLI_NAME)..."
-	@mkdir -p $(BUILD_DIR)
-	$(GO) build $(GOFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(CLI_NAME) ./cmd/kantarctl
-
-## Build both binaries
-build-all: build build-cli
 
 ## Remove build artifacts
 clean:
@@ -137,8 +127,6 @@ help:
 	@grep -E '^## ' $(MAKEFILE_LIST) | sed 's/## /  /'
 	@echo ""
 	@echo "  build        Build kantar server binary"
-	@echo "  build-cli    Build kantarctl CLI binary"
-	@echo "  build-all    Build both binaries"
 	@echo "  test         Run tests"
 	@echo "  test-cover   Run tests with coverage report"
 	@echo "  lint         Run golangci-lint"
