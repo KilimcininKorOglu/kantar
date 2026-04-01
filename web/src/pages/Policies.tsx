@@ -15,6 +15,7 @@ export default function Policies() {
   const [editing, setEditing] = useState<string | null>(null)
   const [editConfig, setEditConfig] = useState<Record<string, any>>({})
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const policyDescKeys: Record<string, string> = {
     license: 'policies.licenseDesc', vulnerability: 'policies.vulnerabilityDesc',
@@ -25,16 +26,22 @@ export default function Policies() {
   const load = () => { api.get<PolicyInfo[]>('/policies').then(setPolicies).catch(() => {}) }
   useEffect(() => { load() }, [])
 
-  const handleToggle = async (name: string) => { await api.put(`/policies/${name}/toggle`); load() }
+  const handleToggle = async (name: string) => {
+    setError('')
+    try { await api.put(`/policies/${name}/toggle`); load() }
+    catch { setError(t('common.saving') + ' — ' + name) }
+  }
 
   const handleSave = async (name: string, e: FormEvent) => {
-    e.preventDefault(); setSaving(true)
-    try { await api.put(`/policies/${name}`, { config: editConfig }); setEditing(null); load() } catch {}
+    e.preventDefault(); setError(''); setSaving(true)
+    try { await api.put(`/policies/${name}`, { config: editConfig }); setEditing(null); load() }
+    catch { setError(t('common.saving') + ' — ' + name) }
     setSaving(false)
   }
 
   return (
     <div className="space-y-4">
+      {error && <div className="bg-danger/10 border border-danger/20 text-danger text-xs rounded px-3 py-2">{error}</div>}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {policies.map(policy => (
           <div key={policy.name} className={`bg-surface border border-border rounded p-4 ${!policy.enabled ? 'opacity-50' : ''}`}>

@@ -20,22 +20,28 @@ export default function Registries() {
   const [editing, setEditing] = useState<string | null>(null)
   const [editData, setEditData] = useState<Partial<RegistryInfo>>({})
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const load = () => { api.get<RegistryInfo[]>('/registries').then(setRegistries).catch(() => {}) }
   useEffect(() => { load() }, [])
 
   const handleSave = async (eco: string) => {
+    setError('')
     setSaving(true)
-    try { await api.put(`/registries/${eco}`, editData); setEditing(null); load() } catch {}
+    try { await api.put(`/registries/${eco}`, editData); setEditing(null); load() }
+    catch { setError(t('common.saving') + ' — ' + eco) }
     setSaving(false)
   }
 
   const handleToggle = async (eco: string, current: boolean) => {
-    await api.put(`/registries/${eco}`, { enabled: !current }); load()
+    setError('')
+    try { await api.put(`/registries/${eco}`, { enabled: !current }); load() }
+    catch { setError(t('common.saving') + ' — ' + eco) }
   }
 
   return (
     <div className="space-y-4">
+      {error && <div className="bg-danger/10 border border-danger/20 text-danger text-xs rounded px-3 py-2">{error}</div>}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         {registries.map(reg => (
           <div key={reg.ecosystem} className={`bg-surface border border-border rounded p-4 ${!reg.enabled ? 'opacity-50' : ''}`}>
