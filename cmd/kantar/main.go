@@ -139,9 +139,18 @@ func buildApp(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*se
 	ensureDefaultAdmin(ctx, queries, logger)
 
 	// 2b. Seed runtime settings from config
-	seedSettings(ctx, queries, cfg, logger)
-	seedRegistries(ctx, queries, cfg, logger)
-	seedPolicies(ctx, queries, logger)
+	if err := seedSettings(ctx, queries, cfg, logger); err != nil {
+		cleanup()
+		return nil, nil, fmt.Errorf("seed settings: %w", err)
+	}
+	if err := seedRegistries(ctx, queries, cfg, logger); err != nil {
+		cleanup()
+		return nil, nil, fmt.Errorf("seed registries: %w", err)
+	}
+	if err := seedPolicies(ctx, queries, logger); err != nil {
+		cleanup()
+		return nil, nil, fmt.Errorf("seed policies: %w", err)
+	}
 
 	// 3. JWT Manager
 	secret := cfg.Auth.JWTSecret
@@ -355,7 +364,7 @@ func newInitCmd() *cobra.Command {
 	return cmd
 }
 
-func seedSettings(ctx context.Context, queries *sqlc.Queries, cfg *config.Config, logger *slog.Logger) {
+func seedSettings(ctx context.Context, queries *sqlc.Queries, cfg *config.Config, logger *slog.Logger) error {
 	defaults := []struct {
 		key, value, category, description string
 	}{
@@ -375,18 +384,21 @@ func seedSettings(ctx context.Context, queries *sqlc.Queries, cfg *config.Config
 		// Only seed if key doesn't exist yet (don't overwrite admin changes)
 		_, err := queries.GetSetting(ctx, d.key)
 		if err != nil {
-			queries.UpsertSetting(ctx, sqlc.UpsertSettingParams{
+			if err := queries.UpsertSetting(ctx, sqlc.UpsertSettingParams{
 				Key:         d.key,
 				Value:       d.value,
 				Category:    d.category,
 				Description: d.description,
-			})
+			}); err != nil {
+				return fmt.Errorf("seeding setting %s: %w", d.key, err)
+			}
 		}
 	}
 	logger.Info("settings seeded")
+	return nil
 }
 
-func seedRegistries(ctx context.Context, queries *sqlc.Queries, cfg *config.Config, logger *slog.Logger) {
+func seedRegistries(ctx context.Context, queries *sqlc.Queries, cfg *config.Config, logger *slog.Logger) error {
 	ecosystems := map[string]struct {
 		upstream string
 		mode     string
@@ -424,7 +436,7 @@ func seedRegistries(ctx context.Context, queries *sqlc.Queries, cfg *config.Conf
 			if e.enabled {
 				enabledInt = 1
 			}
-			queries.UpsertRegistry(ctx, sqlc.UpsertRegistryParams{
+			if err := queries.UpsertRegistry(ctx, sqlc.UpsertRegistryParams{
 				Ecosystem:        eco,
 				Mode:             e.mode,
 				Upstream:         e.upstream,
@@ -433,13 +445,16 @@ func seedRegistries(ctx context.Context, queries *sqlc.Queries, cfg *config.Conf
 				MaxVersions:      0,
 				Enabled:          enabledInt,
 				ConfigJson:       "{}",
-			})
+			}); err != nil {
+				return fmt.Errorf("seeding registry %s: %w", eco, err)
+			}
 		}
 	}
 	logger.Info("registries seeded")
+	return nil
 }
 
-func seedPolicies(ctx context.Context, queries *sqlc.Queries, logger *slog.Logger) {
+func seedPolicies(ctx context.Context, queries *sqlc.Queries, logger *slog.Logger) error {
 	defaults := []struct {
 		name, policyType, configToml string
 	}{
@@ -460,15 +475,18 @@ blocked_prefixes = []`},
 	for _, d := range defaults {
 		_, err := queries.GetPolicy(ctx, d.name)
 		if err != nil {
-			queries.UpsertPolicy(ctx, sqlc.UpsertPolicyParams{
+			if err := queries.UpsertPolicy(ctx, sqlc.UpsertPolicyParams{
 				Name:       d.name,
 				PolicyType: d.policyType,
 				ConfigToml: d.configToml,
 				Enabled:    1,
-			})
+			}); err != nil {
+				return fmt.Errorf("seeding policy %s: %w", d.name, err)
+			}
 		}
 	}
 	logger.Info("policies seeded")
+	return nil
 }
 
 func parseLogLevel(level string) slog.Level {
