@@ -13,7 +13,9 @@ Kantar proxies, mirrors, approves, and serves packages from multiple ecosystems 
 - **Recursive Dependency Sync** -- approve a package and its entire dependency tree is auto-fetched
 - **Policy Engine** -- declarative rules for license, vulnerability severity, package age, size, and naming
 - **RBAC** -- 5 roles: Super Admin, Registry Admin, Publisher, Consumer, Viewer
+- **Secure Auth** -- HttpOnly cookie JWT with CSRF protection for browsers, Bearer token for API/CLI
 - **Audit Trail** -- hash-chain tamper-evident logging
+- **Health Check** -- `GET /healthz` for load balancers and container orchestration
 - **Web Dashboard** -- embedded React SPA with settings, registry, policy, and user management
 - **Runtime Configuration** -- manage settings, registries, and policies via Web UI without restart
 - **Multi-Language** -- English, Turkish, German; per-user language preference
@@ -43,7 +45,7 @@ Open http://localhost:8080 and sign in with `admin` and the printed password.
 
 ### From Source
 
-Prerequisites: Go 1.26+, Node.js 22+, PostgreSQL
+Prerequisites: Go 1.26+, Node.js 22+ (for web UI build), PostgreSQL 15+
 
 ```bash
 # Build web UI + binaries
@@ -157,30 +159,35 @@ Runtime settings (log level, cache TTL, session TTL, registry modes, policy rule
 
 ### Management API (`/api/v1`)
 
-| Method | Endpoint                                | Auth         | Description                |
-|--------|-----------------------------------------|--------------|----------------------------|
-| POST   | `/auth/login`                           | Public       | Get JWT token              |
-| POST   | `/auth/register`                        | Public       | Create user                |
-| GET    | `/system/status`                        | Any role     | Runtime info + version     |
-| GET    | `/profile`                              | Any role     | Get own profile            |
-| PUT    | `/profile`                              | Any role     | Update email/timezone/lang |
-| PUT    | `/profile/password`                     | Any role     | Change own password        |
-| GET    | `/users`                                | Super Admin  | List users                 |
-| PUT    | `/users/{id}`                           | Super Admin  | Update user                |
-| DELETE | `/users/{id}`                           | Super Admin  | Delete user                |
-| GET    | `/packages?registry=npm&status=pending` | Consumer+    | List packages              |
-| POST   | `/packages/{id}/approve`                | Reg. Admin+  | Approve + trigger dep sync |
-| POST   | `/packages/{id}/block`                  | Reg. Admin+  | Block package              |
-| GET    | `/audit`                                | Reg. Admin+  | Audit log entries          |
-| GET    | `/audit/verify`                         | Reg. Admin+  | Verify hash chain          |
-| GET    | `/settings`                             | Reg. Admin+  | List runtime settings      |
-| PUT    | `/settings/{key}`                       | Super Admin  | Update a setting           |
-| GET    | `/registries`                           | Consumer+    | List registries            |
-| PUT    | `/registries/{ecosystem}`               | Super Admin  | Update registry config     |
-| GET    | `/policies`                             | Consumer+    | List policies              |
-| PUT    | `/policies/{name}`                      | Super Admin  | Update policy              |
-| PUT    | `/policies/{name}/toggle`               | Super Admin  | Enable/disable policy      |
-| GET    | `/sync/jobs/{id}`                       | Reg. Admin+  | Sync job status            |
+| Method | Endpoint                                | Auth         | Description                  |
+|--------|-----------------------------------------|--------------|------------------------------|
+| POST   | `/auth/login`                           | Public       | Get JWT token                |
+| POST   | `/auth/register`                        | Public       | Create user                  |
+| POST   | `/auth/logout`                          | Any role     | Clear auth cookies           |
+| GET    | `/system/status`                        | Any role     | Runtime info + version       |
+| GET    | `/system/stats`                         | Any role     | Package count statistics     |
+| GET    | `/profile`                              | Any role     | Get own profile              |
+| PUT    | `/profile`                              | Any role     | Update email/timezone/lang   |
+| PUT    | `/profile/password`                     | Any role     | Change own password          |
+| GET    | `/users`                                | Super Admin  | List users                   |
+| POST   | `/users`                                | Super Admin  | Create user with role        |
+| PUT    | `/users/{id}`                           | Super Admin  | Update user                  |
+| DELETE | `/users/{id}`                           | Super Admin  | Delete user                  |
+| GET    | `/packages?registry=npm&status=pending` | Consumer+    | List packages                |
+| GET    | `/packages/by-name/{registry}/{name}`   | Consumer+    | Lookup package by name       |
+| GET    | `/packages/{id}/versions`               | Consumer+    | List package versions        |
+| POST   | `/packages/{id}/approve`                | Reg. Admin+  | Approve + trigger dep sync   |
+| POST   | `/packages/{id}/block`                  | Reg. Admin+  | Block package                |
+| GET    | `/audit`                                | Reg. Admin+  | Audit log entries            |
+| GET    | `/audit/verify`                         | Reg. Admin+  | Verify hash chain integrity  |
+| GET    | `/settings`                             | Reg. Admin+  | List runtime settings        |
+| PUT    | `/settings/{key}`                       | Super Admin  | Update a setting             |
+| GET    | `/registries`                           | Consumer+    | List registries              |
+| PUT    | `/registries/{ecosystem}`               | Super Admin  | Update registry config       |
+| GET    | `/policies`                             | Consumer+    | List policies                |
+| PUT    | `/policies/{name}`                      | Super Admin  | Update policy                |
+| PUT    | `/policies/{name}/toggle`               | Super Admin  | Enable/disable policy        |
+| GET    | `/sync/jobs/{id}`                       | Reg. Admin+  | Sync job status              |
 
 ### Native Protocol Endpoints
 
@@ -199,16 +206,48 @@ Runtime settings (log level, cache TTL, session TTL, registry modes, policy rule
 
 ```bash
 make build-all              # Build server + CLI
-make web                    # Build web UI
+make web                    # Build web UI (requires Node.js 22+)
 make test                   # Run tests with race detector
+make test-cover             # Tests with coverage report (coverage/coverage.html)
 make lint                   # golangci-lint
-make fmt                    # Format code
+make fmt                    # Format code (gofumpt)
+make vet                    # go vet
 make generate               # Run go generate (sqlc etc.)
+make dev                    # Run server via go run (no binary step)
+make run                    # Build + run server
 make docker-up              # Build and start Docker stack
 make docker-down            # Stop Docker stack
 make docker-rebuild         # Full rebuild without cache
 make docker-logs            # Show kantar container logs
+make clean                  # Remove build artifacts
 ```
+
+Run a single test:
+
+```bash
+go test ./internal/auth/ -run TestHashPassword -v -race -count=1
+```
+
+### CLI Tool (kantarctl)
+
+`kantarctl` provides command-line management of the Kantar registry. Global flags: `--server`, `--token`, `-o` (table/json).
+
+| Command                            | Description                         |
+|------------------------------------|-------------------------------------|
+| `kantarctl status`                 | Show system status                  |
+| `kantarctl registry list`          | List all configured registries      |
+| `kantarctl registry sync [name]`   | Sync packages from upstream         |
+| `kantarctl package search [query]` | Search for packages (`--registry`)  |
+| `kantarctl package approve [pkg]`  | Approve a package                   |
+| `kantarctl package block [pkg]`    | Block a package (`--reason`)        |
+| `kantarctl package info [pkg]`     | Show package details                |
+| `kantarctl package import`         | Import packages from TOML (`--file`)|
+| `kantarctl package export`         | Export approved list (`--format`)    |
+| `kantarctl user list`              | List all users                      |
+| `kantarctl user create`            | Create user (`--username`, `--role`)|
+| `kantarctl user token create`      | Create API token (`--expires`)      |
+| `kantarctl policy validate`        | Validate policy files               |
+| `kantarctl policy test [pkg]`      | Test package against policies       |
 
 ### Project Structure
 
