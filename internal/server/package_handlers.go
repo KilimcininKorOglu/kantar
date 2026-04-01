@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -15,6 +17,34 @@ import (
 	syncp "github.com/KilimcininKorOglu/kantar/internal/sync"
 	"github.com/KilimcininKorOglu/kantar/pkg/registry"
 )
+
+const packageCacheTTL = 60 * time.Second
+
+func (s *Server) cacheGet(ctx context.Context, key string) []byte {
+	if s.deps.Cache == nil {
+		return nil
+	}
+	data, _ := s.deps.Cache.Get(ctx, key)
+	return data
+}
+
+func (s *Server) cacheSet(ctx context.Context, key string, v any, ttl time.Duration) {
+	if s.deps.Cache == nil {
+		return
+	}
+	data, err := json.Marshal(v)
+	if err == nil {
+		s.deps.Cache.Set(ctx, key, data, ttl)
+	}
+}
+
+func (s *Server) cacheInvalidatePackage(ctx context.Context, id int64, registryType, name string) {
+	if s.deps.Cache == nil {
+		return
+	}
+	s.deps.Cache.Delete(ctx, fmt.Sprintf("pkg:id:%d", id))
+	s.deps.Cache.Delete(ctx, fmt.Sprintf("pkg:name:%s:%s", registryType, name))
+}
 
 type packageResponse struct {
 	ID            int64     `json:"id"`
@@ -113,11 +143,18 @@ func (s *Server) handleGetPackageByName(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	registry := chi.URLParam(r, "registry")
+	reg := chi.URLParam(r, "registry")
 	name, _ := url.PathUnescape(chi.URLParam(r, "name"))
 
+	cacheKey := fmt.Sprintf("pkg:name:%s:%s", reg, name)
+	if cached := s.cacheGet(r.Context(), cacheKey); cached != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(cached)
+		return
+	}
+
 	pkg, err := s.deps.Queries.GetPackage(r.Context(), sqlc.GetPackageParams{
-		RegistryType: registry,
+		RegistryType: reg,
 		Name:         name,
 	})
 	if err != nil {
@@ -125,7 +162,9 @@ func (s *Server) handleGetPackageByName(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	writeJSON(w, http.StatusOK, toPackageResponse(pkg))
+	resp := toPackageResponse(pkg)
+	s.cacheSet(r.Context(), cacheKey, resp, packageCacheTTL)
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) handleGetPackage(w http.ResponseWriter, r *http.Request) {
@@ -140,13 +179,22 @@ func (s *Server) handleGetPackage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cacheKey := fmt.Sprintf("pkg:id:%d", id)
+	if cached := s.cacheGet(r.Context(), cacheKey); cached != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(cached)
+		return
+	}
+
 	pkg, err := s.deps.Queries.GetPackageByID(r.Context(), id)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "package not found")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, toPackageResponse(pkg))
+	resp := toPackageResponse(pkg)
+	s.cacheSet(r.Context(), cacheKey, resp, packageCacheTTL)
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) handleApprovePackage(w http.ResponseWriter, r *http.Request) {
@@ -170,6 +218,11 @@ func (s *Server) handleApprovePackage(w http.ResponseWriter, r *http.Request) {
 	if err := s.deps.Manager.ApprovePackage(r.Context(), id, approvedBy); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to approve package")
 		return
+	}
+
+	// Invalidate cached package data
+	if pkg, pkgErr := s.deps.Queries.GetPackageByID(r.Context(), id); pkgErr == nil {
+		s.cacheInvalidatePackage(r.Context(), id, pkg.RegistryType, pkg.Name)
 	}
 
 	if s.deps.AuditLogger != nil {
@@ -227,6 +280,11 @@ func (s *Server) handleBlockPackage(w http.ResponseWriter, r *http.Request) {
 	if err := s.deps.Manager.BlockPackage(r.Context(), id, req.Reason); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to block package")
 		return
+	}
+
+	// Invalidate cached package data
+	if pkg, pkgErr := s.deps.Queries.GetPackageByID(r.Context(), id); pkgErr == nil {
+		s.cacheInvalidatePackage(r.Context(), id, pkg.RegistryType, pkg.Name)
 	}
 
 	claims := auth.ClaimsFromContext(r.Context())
