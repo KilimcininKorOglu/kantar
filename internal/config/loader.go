@@ -83,9 +83,9 @@ func interpolateEnvVars(input string) string {
 
 		varName := submatches[1]
 		defaultVal := ""
-		hasDefault := len(submatches) >= 3 && submatches[2] != ""
+		hasDefault := strings.Contains(match, ":-")
 
-		if hasDefault {
+		if hasDefault && len(submatches) >= 3 {
 			defaultVal = submatches[2]
 		}
 
