@@ -54,3 +54,23 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(status)
 }
+
+type packageStats struct {
+	Total   int64 `json:"total"`
+	Pending int64 `json:"pending"`
+}
+
+func (s *Server) handlePackageStats(w http.ResponseWriter, r *http.Request) {
+	if s.deps.Queries == nil {
+		writeError(w, http.StatusServiceUnavailable, "service not ready")
+		return
+	}
+
+	total, _ := s.deps.Queries.CountAllPackages(r.Context())
+	pending, _ := s.deps.Queries.CountAllPackagesByStatus(r.Context(), "pending")
+
+	writeJSON(w, http.StatusOK, packageStats{
+		Total:   total,
+		Pending: pending,
+	})
+}

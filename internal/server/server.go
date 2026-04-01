@@ -148,6 +148,7 @@ func (s *Server) setupAPIRoutes(r chi.Router) {
 		r.Use(csrfMiddleware)
 
 		r.Get("/system/status", s.handleSystemStatus)
+		r.Get("/system/stats", s.handlePackageStats)
 
 		// Profile — any authenticated user can manage their own profile
 		r.Route("/profile", func(r chi.Router) {

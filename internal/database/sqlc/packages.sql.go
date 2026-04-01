@@ -9,6 +9,28 @@ import (
 	"context"
 )
 
+const countAllPackages = `-- name: CountAllPackages :one
+SELECT COUNT(*) FROM packages
+`
+
+func (q *Queries) CountAllPackages(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAllPackages)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countAllPackagesByStatus = `-- name: CountAllPackagesByStatus :one
+SELECT COUNT(*) FROM packages WHERE status = $1
+`
+
+func (q *Queries) CountAllPackagesByStatus(ctx context.Context, status string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAllPackagesByStatus, status)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countPackages = `-- name: CountPackages :one
 SELECT COUNT(*) FROM packages WHERE registry_type = $1
 `

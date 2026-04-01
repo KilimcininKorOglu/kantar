@@ -31,6 +31,12 @@ SELECT COUNT(*) FROM packages WHERE registry_type = $1;
 -- name: CountPackagesByStatus :one
 SELECT COUNT(*) FROM packages WHERE registry_type = $1 AND status = $2;
 
+-- name: CountAllPackages :one
+SELECT COUNT(*) FROM packages;
+
+-- name: CountAllPackagesByStatus :one
+SELECT COUNT(*) FROM packages WHERE status = $1;
+
 -- name: UpsertPackage :one
 INSERT INTO packages (registry_type, name, status, requested_by)
 VALUES ($1, $2, 'pending', $3)

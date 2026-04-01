@@ -7,17 +7,24 @@ import { Activity, Cpu, HardDrive, Box, AlertTriangle, Download, Timer } from 'l
 
 const ecosystems = ['Docker', 'npm', 'PyPI', 'Go Mod', 'Cargo', 'Maven', 'NuGet', 'Helm']
 
+interface PackageStats {
+  total: number
+  pending: number
+}
+
 export default function Dashboard() {
   const { t } = useTranslation()
   const [status, setStatus] = useState<SystemStatus | null>(null)
+  const [stats, setStats] = useState<PackageStats | null>(null)
   const [recentActivity, setRecentActivity] = useState<AuditLogEntry[]>([])
 
   useEffect(() => {
-    const fetchStatus = () => {
+    const fetchAll = () => {
       api.get<SystemStatus>('/system/status').then(setStatus).catch(() => {})
+      api.get<PackageStats>('/system/stats').then(setStats).catch(() => {})
     }
-    fetchStatus()
-    const interval = setInterval(fetchStatus, 30000)
+    fetchAll()
+    const interval = setInterval(fetchAll, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -28,8 +35,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Box} label={t('dashboard.packages')} value="—" sub={t('dashboard.total')} />
-        <StatCard icon={AlertTriangle} label={t('dashboard.pending')} value="—" sub={t('dashboard.awaitingApproval')} />
+        <StatCard icon={Box} label={t('dashboard.packages')} value={stats ? String(stats.total) : '—'} sub={t('dashboard.total')} />
+        <StatCard icon={AlertTriangle} label={t('dashboard.pending')} value={stats ? String(stats.pending) : '—'} sub={t('dashboard.awaitingApproval')} />
         <StatCard icon={Download} label={t('dashboard.downloads')} value="—" sub={t('dashboard.today')} />
         <StatCard icon={Timer} label={t('dashboard.uptime')} value={status?.uptime || '—'} sub={status?.status || t('dashboard.loadingStatus')} />
       </div>
