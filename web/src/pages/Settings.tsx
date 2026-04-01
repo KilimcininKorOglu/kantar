@@ -15,6 +15,7 @@ export default function Settings() {
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     api.get<SystemStatus>('/system/status').then(setStatus).catch(() => {})
@@ -24,17 +25,21 @@ export default function Settings() {
   const categories = [...new Set(settings.map(s => s.category))]
 
   const handleSave = async (key: string) => {
+    setError('')
     setSaving(true)
     try {
       await api.put(`/settings/${key}`, { value: editValue })
       setSettings(prev => prev.map(s => s.key === key ? { ...s, value: editValue } : s))
       setEditingKey(null)
-    } catch {}
+    } catch {
+      setError(t('common.saving') + ' — ' + key)
+    }
     setSaving(false)
   }
 
   return (
     <div className="space-y-5">
+      {error && <div className="bg-danger/10 border border-danger/20 text-danger text-xs rounded px-3 py-2">{error}</div>}
       {/* System Info */}
       <div className="bg-surface border border-border rounded p-4">
         <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-4">{t('settings.systemInfo')}</h3>
